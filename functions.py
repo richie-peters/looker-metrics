@@ -751,3 +751,38 @@ def prepare_looker_analysis_batch(df):
         batch_data.append({"content": formatted_prompt})
     
     return batch_data
+
+
+    def auto_git_save():
+    """Automatically save code to GitHub"""
+    import os
+    from datetime import datetime
+    
+    try:
+        # Make sure we're in the git repository
+        if not os.path.exists('.git'):
+            print("⚠️ Not in git repository - changing to /content/looker-metrics")
+            os.chdir('/content/looker-metrics')
+            
+            # Copy the main.py file to git repo
+            import shutil
+            shutil.copy('/content/main.py', './main.py')
+            shutil.copy('/content/config.py', './config.py')  
+            shutil.copy('/content/functions.py', './functions.py')
+            print("✓ Copied files to git repository")
+        
+        # Create commit message with timestamp
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        commit_msg = f"Auto-save: Analysis run completed at {timestamp}"
+        
+        # Git commands
+        os.system('git add .')
+        os.system(f'git commit -m "{commit_msg}"')
+        os.system('git push origin main')
+        
+        print(f"✓ Auto-saved to GitHub: {commit_msg}")
+        
+    except Exception as e:
+        print(f"⚠️ Auto-save failed (but analysis completed): {str(e)}")
+
+
