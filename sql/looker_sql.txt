@@ -1,0 +1,116 @@
+WITH
+  -- 1. Identify popular Looker Studio reports (with more than 3 distinct viewers and specific owners)
+  LookerStudioPopularReports AS (
+    SELECT
+      assetId,
+      assetTitle,
+      assetOwner,
+      REPLACE(REPLACE(assetId, 'https://lookerstudio.google.com/reporting/', ''), 'https://datastudio.google.com/reporting/', '') AS report_id_clean
+    FROM (
+      SELECT
+        assetid,
+        assettitle,
+        assetOwner,
+        COUNT(DISTINCT user) AS viewers
+      FROM
+        `ncau-data-newsquery-prd.cdm_looker_studio.looker_studio_audit_logs`
+      GROUP BY
+        assetid,
+        assettitle,
+        assetOwner
+    )
+    WHERE
+      viewers >= 3
+      AND assetOwner IN (INSERT) -- <--- Your list of asset owners here
+  ),
+  -- 2. Identify all unique users who have viewed any of these popular reports.
+  UsersOfPopularReports AS (
+    SELECT DISTINCT
+      LOWER(user) AS username
+    FROM
+      `ncau-data-newsquery-prd.cdm_looker_studio.looker_studio_audit_logs` lsal
+    INNER JOIN
+      LookerStudioPopularReports lspr ON lsal.assetId = lspr.assetId
+  ),
+  -- 3. Get BigQuery audit logs for jobs initiated by the identified users,
+  --    and extract the Looker Studio report ID from job labels.
+  BigQueryAuditLogsFilteredByUser AS (
+    SELECT
+      protopayload_auditlog.authenticationInfo.principalEmail AS username,
+      receiveTimestamp,
+      protopayload_auditlog.servicedata_v1_bigquery.jobCompletedEvent.job.jobName.jobId,
+      protopayload_auditlog.servicedata_v1_bigquery.jobCompletedEvent.job.jobConfiguration,
+      protopayload_auditlog.servicedata_v1_bigquery.jobCompletedEvent.job.jobStatistics.startTime,
+      protopayload_auditlog.servicedata_v1_bigquery.jobCompletedEvent.job.jobStatistics.endTime,
+      protopayload_auditlog.servicedata_v1_bigquery.jobCompletedEvent.job.jobStatistics.totalSlotMs,
+      protopayload_auditlog.servicedata_v1_bigquery.jobCompletedEvent.job.jobStatistics.totalProcessedBytes,
+      protopayload_auditlog.servicedata_v1_bigquery.jobCompletedEvent.job.jobStatistics.totalBilledBytes,
+      protopayload_auditlog.servicedata_v1_bigquery.jobCompletedEvent.job.jobStatistics.reservation,
+      (
+        SELECT value
+        FROM UNNEST(protopayload_auditlog.servicedata_v1_bigquery.jobCompletedEvent.job.jobConfiguration.labels)
+        WHERE key = 'looker_studio_report_id'
+      ) AS looker_studio_report_id,
+      protopayload_auditlog.servicedata_v1_bigquery.jobCompletedEvent.job.jobConfiguration.query.query AS query_text
+    FROM
+      `ncau-data-newsquery-prd.ops_prd_bq_logs.cloudaudit_googleapis_com_data_access`
+    WHERE
+      DATE(receiveTimestamp) >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH)
+      AND protopayload_auditlog.authenticationInfo.principalEmail IN (SELECT username FROM UsersOfPopularReports)
+      AND (
+            SELECT value
+            FROM UNNEST(protopayload_auditlog.servicedata_v1_bigquery.jobCompletedEvent.job.jobConfiguration.labels)
+            WHERE key = 'looker_studio_report_id'
+          ) IS NOT NULL
+  ),
+  -- 4. Join BigQuery jobs with popular report info and rank jobs randomly per report
+  RankedBigQueryJobsPerReport AS (
+    SELECT
+      bqa.jobId,
+      bqa.username,
+      lspr.assetTitle AS looker_studio_report_name,
+      lspr.assetOwner,
+      bqa.looker_studio_report_id,
+      bqa.startTime,
+      bqa.endTime,
+      bqa.receiveTimestamp,
+      DATE_DIFF(bqa.endTime, bqa.startTime, SECOND) AS runtime_seconds,
+      bqa.totalSlotMs,
+      bqa.totalProcessedBytes,
+      bqa.totalBilledBytes,
+      bqa.reservation,
+      bqa.query_text,
+      -- Use a random ordering for ROW_NUMBER to get 'different flavors'
+      ROW_NUMBER() OVER (PARTITION BY bqa.looker_studio_report_id ORDER BY FARM_FINGERPRINT(bqa.jobId)) AS rn
+      -- Or, for a time-based random sample (less truly random but still varies):
+      -- ROW_NUMBER() OVER (PARTITION BY bqa.looker_studio_report_id ORDER BY RAND()) AS rn -- RAND() is non-deterministic
+      -- Better for consistent random: ORDER BY FARM_FINGERPRINT(CONCAT(bqa.jobId, CAST(bqa.receiveTimestamp AS STRING)))
+    FROM
+      BigQueryAuditLogsFilteredByUser bqa
+    INNER JOIN
+      LookerStudioPopularReports lspr
+    ON
+      bqa.looker_studio_report_id = lspr.report_id_clean
+  )
+-- 5. Final Selection: Retrieve only the top N (e.g., 3) randomly sampled jobs for each popular report
+SELECT
+  jobId,
+  username,
+  looker_studio_report_name,
+  assetOwner,
+  looker_studio_report_id,
+  startTime,
+  endTime,
+  runtime_seconds,
+  totalSlotMs,
+  totalProcessedBytes,
+  totalBilledBytes,
+  reservation,
+  query_text
+FROM
+  RankedBigQueryJobsPerReport
+WHERE
+  rn <= 3 -- Select only the top 3 rows per report (randomly picked)
+ORDER BY
+  looker_studio_report_name,
+  jobId; -- Order by report name and then jobId for consistent output

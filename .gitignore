@@ -1,0 +1,21 @@
+
+# Data files (too large for git)
+data/*.csv
+data/*.json
+data/raw_batch_results.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter/Colab checkpoints
+.ipynb_checkpoints/
+
+# Environment files
+.env
+*.log
+
+# Large result files
+results/
+logs/
