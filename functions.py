@@ -26,7 +26,6 @@ import numpy as np
 # Looker Analysis Prompt
 LOOKER_ANALYSIS_PROMPT = """
 Analyze these Looker Studio dashboard SQL queries and extract comprehensive metrics information with unified dataset analysis.
-
 INPUT DATA:
 - Dashboard ID: {dashboard_id}
 - Dashboard Name: {dashboard_name}
@@ -34,108 +33,55 @@ INPUT DATA:
 
 ANALYSIS REQUIREMENTS:
 
-1. **METRIC EXTRACTION**: Identify all business metrics, dimensions, and calculations
-2. **SQL DECOMPOSITION**: Break down complex nested queries into logical components
-3. **DEPENDENCY MAPPING**: Identify which calculations depend on others
-4. **BUSINESS LOGIC**: Extract the core business rules and transformations
-5. **DATASET STRUCTURE**: Understand data grain, key dimensions, and metric interactions
-6. **HARDCODED VALUES**: Identify hardcoded dates, values, and variables that should be parameterised or use governed tables
-7. **UNIFIED ANALYSIS**: Create consolidated queries that analyze all metrics together
-8. **STANDARDISATION**: Use standardised classes and values for consistent analysis
-9. **BIGQUERY COMPLIANCE**: Generate only valid BigQuery SQL syntax
+1. **METRIC EXTRACTION**: Identify all business metrics, dimensions, and calculations.
+2. **SQL DECOMPOSITION**: Break down complex nested queries into logical components.
+3. **DEPENDENCY MAPPING**: Identify which calculations depend on others.
+4. **BUSINESS LOGIC**: Extract the core business rules and transformations.
+5. **DATASET STRUCTURE**: Understand data grain, key dimensions, and metric interactions.
+6. **HARDCODED VALUES**: Identify hardcoded dates, values, and variables that should be parameterised or use governed tables.
+7. **UNIFIED ANALYSIS**: Create consolidated queries that analyze all metrics together.
+8. **STANDARDISATION**: Use standardised classes and values for consistent analysis.
+9. **BIGQUERY COMPLIANCE**: Generate only valid BigQuery SQL syntax.
 
 OUTPUT REQUIREMENTS (JSON):
 Return a flat JSON structure with the following schema:
-
 {{
   "dashboard_summary": {{
     "dashboard_id": "string",
     "dashboard_name": "string",
-    "primary_data_sources": "project1.dataset1.table1;project2.dataset2.table2;project3.dataset3.table3",
+    "primary_data_sources": "project1.dataset1.table1;project2.dataset2.table2",
     "business_domain": "advertising|finance|consumer|operations|marketing|sales|product|hr|other",
-    "complexity_score": 1-10,
-    "consolidation_score": 1-10,
-    "total_metrics_identified": number,
-    "date_grain": "daily|weekly|monthly|quarterly|yearly|mixed|none",
-    "data_grain": "transactional|aggregate",
-    "key_dimensions": ["date", "customer_id", "product", "region"],
-    "date_range_detected": "01/01/2024 to Current",
-    "hardcoded_dates_found": ["03/07/2024", "30/03/2025", "01/01/2024"],
-    "hardcoded_values_found": ["specific product IDs", "region codes", "business unit names"],
-    "governance_opportunities": ["dates should be parameterised", "product codes should join to product_master", "regions should use location_hierarchy"]
+    "complexity_score": "A score from 1-10 on the technical complexity of the dashboard's SQL.",
+    "consolidation_score": "A score from 1-10 indicating how much this dashboard would benefit from consolidation.",
+    "score_reasoning": "Briefly explain the reasoning behind the complexity and consolidation scores.",
+    "total_metrics_identified": "number",
+    "date_grain": "daily|weekly|monthly|quarterly|yearly|mixed|none"
   }},
   "dataset_analysis": {{
-    "primary_analysis_sql": "**THIS IS THE MAIN SQL TO RUN** - Single query showing all key metrics calculated together with appropriate sampling and date filters",
-    "structure_sql": "Query to understand data structure, grain, and key dimensions with sampling",
-    "validation_sql": "Quick validation that all metric calculations work syntactically",
-    "business_rules_sql": "Query to validate key business logic, filters, and data quality",
-    "sample_data_sql": "Query to get representative sample data for further analysis",
-    "hardcoded_issues": {{
-      "hardcoded_dates": [
-        {{
-          "date_value": "03/07/2024",
-          "original_format": "2024-07-03T00:00:00",
-          "context": "used as baseline date in DATETIME_DIFF calculation",
-          "suggested_fix": "replace with CURRENT_DATE() or parameter",
-          "impact": "high|medium|low",
-          "urgency": "high|medium|low"
-        }}
-      ],
-      "hardcoded_variables": [
-        {{
-          "variable_type": "lookup_codes|business_rules|thresholds|categories|other",
-          "hardcoded_values": ["'TA'", "'DT'", "'HS'"],
-          "context": "masthead codes hardcoded in CASE statement",
-          "suggested_governance": "join to masthead_lookup table",
-          "impact": "high|medium|low",
-          "maintenance_risk": "high|medium|low"
-        }}
-      ]
-    }},
-    "parameterisation_recommendations": [
-      "Replace hardcoded dates with date parameters or relative date functions",
-      "Replace hardcoded lookup values with joins to governed reference tables",
-      "Use configuration tables for business rules instead of hardcoded logic"
-    ]
+    "primary_analysis_sql": "**THIS IS THE MAIN SQL TO RUN** - Single query showing all key metrics calculated together with appropriate sampling and date filters.",
+    "structure_sql": "Query to understand data structure, grain, and key dimensions with sampling.",
+    "validation_sql": "Quick validation that all metric calculations work syntactically.",
+    "business_rules_sql": "Query to validate key business logic, filters, and data quality."
   }},
   "metrics": [
     {{
       "metric_id": "unique_identifier_snake_case",
       "metric_name": "Human Readable Name",
       "metric_type": "dimension|measure|calculated_field|filter|aggregation|ratio|percentage",
-      "calculation_type": "sum|count|count_distinct|average|min|max|ratio|case_when|date_function|string_function|mathematical|conditional",
-      "data_type": "numeric|string|date|boolean|array",
-      "aggregation_level": "transaction|daily|weekly|monthly|quarterly|yearly|customer|product|region|custom",
-      "is_final_output": true|false,
-      "is_kpi": true|false,
-      "business_criticality": "high|medium|low",
-      "depends_on_metrics": ["metric_id1", "metric_id2"],
       "business_description": "what this metric represents in business terms",
       "sql_logic": "core SQL calculation logic extracted from queries",
-      "data_sources": ["project.dataset.table1", "project.dataset.table2"],
-      "filters_applied": ["date filters", "business rules", "exclusions"],
-      "expected_data_type": "integer|decimal|string|date|boolean",
-      "business_context": "how this metric fits into overall business analysis",
-      "metric_category": "revenue|cost|volume|efficiency|quality|growth|retention|acquisition|other",
-      "update_frequency": "real_time|hourly|daily|weekly|monthly|quarterly|yearly|on_demand",
-      "seasonality_impact": "high|medium|low|none",
-      "hardcoded_dates_in_metric": ["03/07/2024", "01/01/2025"],
-      "hardcoded_values_in_metric": ["'Metro'", "'Regional'", "'TA'", "'DT'"],
-      "governance_issues": ["date should be parameterised", "lookup values should use reference table"],
+      "is_kpi": "true|false",
+      "business_criticality": "high|medium|low",
+      "depends_on_metrics": ["metric_id1", "metric_id2"],
+      "governance_issues": [
+        {{
+            "issue_type": "hardcoded_date|hardcoded_value|logic_concern",
+            "description": "e.g., 'Hardcoded fiscal year 2025' or 'CASE statement uses hardcoded region codes'",
+            "value_found": "'2025' or \"'TA', 'DT'\"",
+            "recommendation": "e.g., 'Replace with date parameter' or 'Join to masthead_lookup table'"
+        }}
+      ],
       "data_quality_concerns": ["potential nulls", "outliers expected", "data freshness dependent"]
-    }}
-  ],
-  "metric_interactions": [
-    {{
-      "interaction_type": "mathematical_relationship|dependency|filter_impact|hierarchical|causal",
-      "primary_metric": "metric_id",
-      "related_metrics": ["metric_id1", "metric_id2"],
-      "relationship_description": "how these metrics relate to each other",
-      "mathematical_formula": "if applicable: A = B * C or A = B + C",
-      "business_validation": "what this relationship means for business analysis",
-      "validation_sql": "SQL to test this relationship holds true",
-      "relationship_strength": "strong|medium|weak",
-      "business_impact": "high|medium|low"
     }}
   ]
 }}
@@ -143,150 +89,20 @@ Return a flat JSON structure with the following schema:
 CRITICAL BIGQUERY SQL REQUIREMENTS:
 
 **NEVER DO THESE - THEY CAUSE FAILURES:**
-❌ Compare INT64 with STRING: WHERE fiscal_week_id = 'CP'
-❌ Use LPAD on INT64: LPAD(week_number, 2, '0')
-❌ Create arrays with NULLs: ARRAY[col1, col2, null_col]
-❌ Missing GROUP BY: SELECT customer, revenue FROM table GROUP BY customer
-❌ Compare different types: WHERE year_column = 'CP' (if year_column is INT64)
+- Compare INT64 with STRING: `WHERE fiscal_week_id = 'CP'`
+- Use string functions on non-string types: `SUBSTR(fiscal_year, 3, 2)` if `fiscal_year` is INT64.
+- Invent column names. Only use column names explicitly found in the provided SQL samples.
+- Assume table structures. The provided SQL is the only source of truth for table and column names.
+- Create arrays with NULLs: `ARRAY[col1, col2, null_col]`
+- Missing GROUP BY: `SELECT customer, revenue FROM table GROUP BY customer`
 
 **ALWAYS DO THESE - THEY WORK:**
-✅ Cast before comparing: WHERE CAST(fiscal_week_id AS STRING) = 'CP' OR WHERE fiscal_week_id = CAST('2024' AS INT64)
-✅ Cast before string functions: LPAD(CAST(week_number AS STRING), 2, '0')
-✅ Handle NULLs in arrays: ARRAY(SELECT x FROM UNNEST([col1, col2, col3]) AS x WHERE x IS NOT NULL)
-✅ Aggregate or group all columns: SELECT customer, SUM(revenue) as total_revenue FROM table GROUP BY customer
-✅ Use SAFE_CAST for safety: WHERE SAFE_CAST(column AS STRING) = 'value'
-
-DATASET ANALYSIS REQUIREMENTS (BIGQUERY-COMPLIANT):
-
-1. **primary_analysis_sql**: **THE MAIN QUERY TO EXECUTE**
-   ```sql
-   -- Example structure - MUST be valid BigQuery syntax:
-   WITH base_data AS (
-     SELECT 
-       date_dimension,
-       primary_grouping_dimension,
-       revenue_column,
-       customer_column
-     FROM `project.dataset.table`
-     WHERE SAFE_CAST(date_column AS DATE) >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
-   )
-   SELECT 
-     date_dimension,
-     primary_grouping_dimension,
-     COUNT(*) as record_count,
-     SUM(SAFE_CAST(revenue_column AS NUMERIC)) as total_revenue,
-     COUNT(DISTINCT customer_column) as unique_customers,
-     AVG(SAFE_CAST(revenue_column AS NUMERIC)) as avg_revenue_per_record
-   FROM base_data
-   GROUP BY date_dimension, primary_grouping_dimension  -- MUST include all non-aggregated columns
-   ORDER BY date_dimension DESC
-   LIMIT 100
-
-
-structure_sql: Understand data structure - HANDLE TYPE MISMATCHES
-SELECT 
-  'Data Structure Analysis' as analysis_type,
-  COUNT(*) as total_records,
-  COUNT(DISTINCT SAFE_CAST(date_column AS DATE)) as unique_dates,
-  COUNT(DISTINCT customer_column) as unique_customers,
-  COUNT(DISTINCT SAFE_CAST(fiscal_week_id AS STRING)) as unique_fiscal_weeks,
-  MIN(SAFE_CAST(date_column AS DATE)) as earliest_date,
-  MAX(SAFE_CAST(date_column AS DATE)) as latest_date,
-  APPROX_COUNT_DISTINCT(primary_key) as approx_unique_records
-FROM `project.dataset.main_table` 
-WHERE SAFE_CAST(date_column AS DATE) >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
-
-
-
-validation_sql: Quick validation - USE SAFE_CAST
-SELECT 
-  'Validation Check' as test_type,
-  CASE WHEN SUM(SAFE_CAST(revenue AS NUMERIC)) > 0 THEN 'PASS' ELSE 'FAIL' END as revenue_test,
-  CASE WHEN COUNT(DISTINCT customer_column) > 0 THEN 'PASS' ELSE 'FAIL' END as customer_test,
-  CASE WHEN MAX(SAFE_CAST(date_column AS DATE)) >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY) THEN 'PASS' ELSE 'FAIL' END as freshness_test,
-  CASE WHEN COUNT(CASE WHEN SAFE_CAST(status_column AS STRING) IN ('CP', 'PY') THEN 1 END) > 0 THEN 'PASS' ELSE 'FAIL' END as status_test
-FROM `project.dataset.main_table`
-WHERE SAFE_CAST(date_column AS DATE) >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
-LIMIT 1
-
-
-
-business_rules_sql: Business logic validation - HANDLE ARRAYS PROPERLY
-SELECT 
-  'Business Rule Validation' as validation_type,
-  'period_type_validation' as rule_name,
-  COUNT(*) as records_tested,
-  SUM(CASE WHEN SAFE_CAST(period_column AS STRING) IN ('CP', 'PY') THEN 1 ELSE 0 END) as records_passing_rule,
-  SAFE_DIVIDE(SUM(CASE WHEN SAFE_CAST(period_column AS STRING) IN ('CP', 'PY') THEN 1 ELSE 0 END), COUNT(*)) * 100 as pass_rate_percentage
-FROM `project.dataset.main_table`
-WHERE SAFE_CAST(date_column AS DATE) >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
-
-
-
-sample_data_sql: Representative sample - CAST DATE COLUMNS
-SELECT 
-  -- Cast all potentially problematic columns
-  SAFE_CAST(date_column AS DATE) as date_column,
-  customer_dimension,
-  product_dimension,
-  SAFE_CAST(fiscal_week_id AS STRING) as fiscal_week_id,
-  SAFE_CAST(revenue_metric AS NUMERIC) as revenue_metric,
-  SAFE_CAST(volume_metric AS NUMERIC) as volume_metric
-FROM `project.dataset.main_table`
-WHERE SAFE_CAST(date_column AS DATE) >= DATE_SUB(CURRENT_DATE(), INTERVAL 14 DAY)
-  AND revenue_metric IS NOT NULL
-ORDER BY SAFE_CAST(date_column AS DATE) DESC, SAFE_CAST(revenue_metric AS NUMERIC) DESC
-LIMIT 500
-
-
-BIGQUERY SYNTAX ENFORCEMENT:
-
-Type Casting Rules:
-
-ALWAYS use SAFE_CAST() instead of implicit conversion
-Cast before any comparison: SAFE_CAST(column AS STRING) = 'value'
-Cast before string functions: LPAD(CAST(number AS STRING), 2, '0')
-
-
-
-Aggregation Rules:
-
-Every non-aggregated column in SELECT must be in GROUP BY
-Use SUM, COUNT, AVG, MAX, MIN for calculated fields
-When unsure, aggregate the column: SUM(column) or MAX(column)
-
-
-
-Array Handling:
-
-Never include NULL in arrays: ARRAY(SELECT x FROM UNNEST([col1, col2]) AS x WHERE x IS NOT NULL)
-Use ARRAY_AGG() for creating arrays from query results
-
-
-
-Date/Time Functions:
-
-Use CURRENT_DATE() not CURRENT_DATE
-Use DATE_SUB(CURRENT_DATE(), INTERVAL n DAY)
-Cast date columns: SAFE_CAST(date_col AS DATE)
-
-
-
-String Comparisons:
-
-Always cast numbers to strings before string comparison
-Use SAFE_CAST to avoid errors: SAFE_CAST(fiscal_week AS STRING) = 'CP'
-
-
-IMPORTANT NOTES:
-primary_analysis_sql is the main SQL to execute - this gives you dashboard metrics with real data
-All SQL must be valid BigQuery syntax - test every comparison and function
-Use SAFE_CAST extensively - prevents type mismatch errors
-Always GROUP BY non-aggregated columns - prevents grouping errors
-Handle NULLs in arrays explicitly - prevents array errors
-Focus on business logic while ensuring technical correctness
-Prioritise metrics marked as is_kpi=true and business_criticality=high
-All SQL queries should use appropriate sampling and be cost-optimised
+- **Aggressively use SAFE_CAST on all columns involved in comparisons, functions, or joins.**
+- Cast before comparing: `WHERE SAFE_CAST(fiscal_week_id AS STRING) = 'CP' OR WHERE fiscal_week_id = CAST('2024' AS INT64)`
+- Cast before using string functions: `SUBSTR(SAFE_CAST(fiscal_year AS STRING), 3, 2)`
+- Handle NULLs in arrays: `ARRAY(SELECT x FROM UNNEST([col1, col2, col3]) AS x WHERE x IS NOT NULL)`
+- Aggregate or group all non-aggregated columns in the SELECT statement.
+- **Verify column existence**: Only use columns that are present in the sample SQL queries provided.
 """
 
 
@@ -1844,199 +1660,66 @@ def prepare_secondary_batch_input_clean(unified_dataset, df_bq_results):
 
 def design_secondary_analysis_prompt():
     """
-    Design the secondary analysis prompt that leverages actual SQL results
-    for consolidation planning and migration preparation
+    Designs the secondary analysis prompt to validate initial findings
+    and propose a data-backed consolidation strategy.
     """
-    
     secondary_prompt = """
-    SECONDARY LOOKER CONSOLIDATION ANALYSIS
-    =====================================
-    
-    You are an expert data architect analyzing Looker Studio dashboards for a finance systems consolidation project.
-    You now have ACTUAL DATA RESULTS from BigQuery queries, not just SQL analysis.
-    
-    INPUT DATA:
+    SECONDARY LOOKER CONSOLIDATION ANALYSIS: DATA VALIDATION & STRATEGY
+    =====================================================================
+
+    You are an expert data architect. Your task is to analyze an initial AI assessment of a Looker Studio dashboard against **actual data results** from executed BigQuery queries. Your goal is to verify the initial findings and propose a high-level, data-backed strategy for consolidation.
+
+    **INPUT DATA:**
     - Dashboard ID: {dashboard_id}
     - Dashboard Name: {dashboard_name}
-    - Original Analysis: {original_dashboard_analysis}
-    - SQL Execution Results: {actual_sql_results}
-    - Primary Analysis Data: {primary_analysis_data}
-    - Structure Analysis Data: {structure_analysis_data}
-    - Validation Results: {validation_results}
-    - Business Rules Data: {business_rules_data}
-    
-    CONSOLIDATION OBJECTIVES:
-    1. **METRIC CONSOLIDATION**: Identify duplicate/similar metrics across dashboards
-    2. **DATA SOURCE UNIFICATION**: Map to consolidated finance data model
-    3. **TRANSFORMATION MAPPING**: Create specific transformation rules
-    4. **TESTING STRATEGY**: Design validation approaches for migration
-    5. **RELATIONSHIP MODELING**: Design new unified data relationships
-    6. **MIGRATION PLANNING**: Create step-by-step migration approach
-    
-    OUTPUT REQUIREMENTS (JSON):
+    - Initial AI-Generated Analysis: {original_dashboard_analysis}
+    - **Actual Data from Primary Analysis Query**: {primary_analysis_data}
+    - **Actual Data from Structure Analysis Query**: {structure_analysis_data}
+    - **Actual Data from Validation Query**: {validation_results}
+    - **Actual Data from Business Rules Query**: {business_rules_data}
+
+    **CORE OBJECTIVES:**
+    1.  **VERIFY METRICS**: Use the provided data samples to confirm or challenge the initial metric definitions.
+    2.  **IDENTIFY CONSOLIDATION OPPORTUNITIES**: Based on the actual data, identify metrics or data sources that are clear candidates for consolidation.
+    3.  **FORMULATE STRATEGY**: Propose a high-level strategy for how to approach the consolidation for this dashboard.
+
+    **OUTPUT REQUIREMENTS (JSON):**
     {{
       "consolidation_analysis": {{
         "dashboard_id": "string",
         "dashboard_name": "string",
-        "consolidation_priority": "high|medium|low",
-        "migration_complexity": 1-10,
-        "data_quality_score": 1-10,
-        "consolidation_readiness": "ready|needs_prep|major_rework",
-        "estimated_migration_effort_days": number,
-        "business_impact_risk": "high|medium|low",
-        "dependencies": ["dashboard_id1", "dashboard_id2"],
-        "consolidation_opportunities_count": number
+        "consolidation_priority": "high|medium|low (Based on complexity and opportunities found)",
+        "migration_complexity": "1-10 (Based on the number of sources, metrics, and data quality issues found)",
+        "data_quality_score": "1-10 (Based on nulls, inconsistencies, or failed validation queries in the provided data)",
+        "key_findings_from_data": "A summary of the most important insights derived directly from analyzing the query results."
       }},
-      
       "metrics_consolidation": [
         {{
           "current_metric_name": "string",
-          "current_calculation": "string",
-          "data_sample_analysis": "what the actual data tells us about this metric",
-          "consolidation_target_metric": "proposed unified metric name",
-          "consolidation_rationale": "why these should be consolidated",
-          "transformation_rule": "specific transformation logic needed",
-          "data_validation_rule": "how to test this transformation",
-          "business_impact": "high|medium|low",
-          "migration_order": number,
-          "similar_metrics_across_dashboards": ["metric references from other dashboards"],
-          "unified_definition": "standardised business definition",
-          "sample_values_analysis": "insights from actual data values",
-          "data_quality_issues": ["specific issues found in data"],
-          "proposed_new_calculation": "new standardised calculation method"
+          "consolidation_target_metric": "A proposed unified metric name (e.g., 'unified_revenue_usd').",
+          "data_backed_rationale": "Explain WHY these metrics should be consolidated, using evidence from the 'actual_sql_results'. For example: 'The data shows that metric_A from this dashboard and metric_B from another dashboard have nearly identical value ranges and patterns, suggesting they measure the same business concept.'",
+          "proposed_transformation": "A high-level description of the transformation logic needed (e.g., 'COALESCE values and convert currency')."
         }}
       ],
-      
       "data_source_mapping": [
         {{
           "current_source": "project.dataset.table",
-          "current_usage": "how this source is used",
-          "data_sample_insights": "what the actual data structure reveals", 
           "consolidation_target": "proposed new unified table/view",
-          "mapping_complexity": 1-10,
-          "transformation_type": "direct_map|calculation_required|major_restructure",
-          "key_fields_mapping": {{"old_field": "new_field"}},
-          "data_quality_concerns": ["issues found in actual data"],
-          "migration_prerequisites": ["steps needed before migration"],
-          "testing_approach": "how to validate this mapping"
+          "mapping_complexity": "1-10",
+          "data_backed_rationale": "Explain WHY this mapping is proposed, using evidence from the 'structure_analysis_data' (e.g., 'This source contains transactional data with a grain that matches the proposed unified `transactions` table.')."
         }}
       ],
-      
-      "relationship_model": {{
-        "current_relationships": ["how data currently connects"],
-        "proposed_unified_model": "description of new consolidated model",
-        "key_entities": ["primary business objects"],
-        "relationship_changes": ["what relationships need to change"],
-        "consolidation_benefits": ["benefits of new model"],
-        "implementation_challenges": ["challenges to address"],
-        "data_lineage_impact": "how this affects data flow"
+      "consolidation_strategy": {{
+          "strategic_summary": "A plain-english summary of how to approach consolidating this dashboard.",
+          "key_prerequisites": ["List of cleanup tasks or dependencies that must be addressed first (e.g., 'Address hardcoded values in `metric_X`', 'Create unified `customer_lookup` table')."],
+          "proposed_sequencing": ["High-level order of operations (e.g., '1. Unify data sources. 2. Consolidate revenue metrics. 3. Decommission old views.')"]
       }},
-      
-      "transformation_specifications": [
-        {{
-          "transformation_name": "string", 
-          "source_logic": "current calculation/logic",
-          "target_logic": "new unified logic",
-          "transformation_type": "formula_change|aggregation_change|source_change|business_rule_change",
-          "sql_transformation": "specific SQL to perform transformation",
-          "validation_sql": "SQL to validate transformation worked correctly",
-          "rollback_plan": "how to reverse if issues found",
-          "testing_data_sample": "sample data to test with",
-          "expected_result_range": "expected output values/ranges",
-          "business_validation_criteria": "how business users validate correctness"
-        }}
-      ],
-      
-      "migration_plan": {{
-        "migration_wave": 1-5,
-        "migration_order_within_wave": number,
-        "prerequisites": ["what must be done first"],
-        "migration_steps": ["specific step-by-step actions"],
-        "testing_phases": ["validation checkpoints"],
-        "rollback_triggers": ["conditions that require rollback"],
-        "business_validation_required": ["stakeholder sign-offs needed"],
-        "go_live_criteria": ["requirements for production deployment"],
-        "post_migration_monitoring": ["what to monitor after migration"]
-      }},
-      
-      "english_summaries": {{
-        "dashboard_plain_english": "Simple description of what this dashboard does for business users",
-        "consolidation_story": "Plain English explanation of how this fits into consolidation",
-        "business_impact_summary": "What happens to users during migration",
-        "key_changes_summary": "Main changes users will see",
-        "benefits_summary": "Benefits users will gain from consolidation",
-        "migration_timeline_summary": "When changes will happen"
-      }},
-      
-      "quality_assessment": {{
-        "data_completeness_score": 1-10,
-        "data_accuracy_issues": ["problems found in actual data"],
-        "calculation_validation_results": ["whether calculations work correctly"],
-        "business_logic_issues": ["problems with business rules"],
-        "performance_concerns": ["query performance issues"],
-        "scalability_issues": ["problems with data volume"],
-        "recommendations": ["specific improvements needed"]
+      "english_summary": {{
+        "dashboard_story": "A simple, one-paragraph description of what this dashboard does for business users.",
+        "consolidation_story": "A simple, one-paragraph explanation of how this dashboard fits into the larger consolidation effort and the benefits of doing so."
       }}
     }}
-    
-    ANALYSIS REQUIREMENTS USING ACTUAL DATA:
-    
-    1. **DATA-DRIVEN METRIC ANALYSIS**:
-       - Use actual data samples to understand metric behavior
-       - Identify metrics that produce similar results (potential duplicates)
-       - Analyze data distributions to understand business patterns
-       - Find calculation inconsistencies by comparing results
-    
-    2. **CONSOLIDATION OPPORTUNITY DETECTION**:
-       - Compare metrics across dashboards using actual values
-       - Identify business logic that can be standardised
-       - Find data sources that can be unified
-       - Detect redundant calculations
-    
-    3. **TRANSFORMATION DESIGN**:
-       - Create specific transformation rules based on actual data patterns
-       - Design validation queries using real data ranges
-       - Identify edge cases from actual data samples
-       - Plan for data quality improvements
-    
-    4. **MIGRATION PLANNING**:
-       - Sequence migrations based on data dependencies
-       - Design testing using actual data samples
-       - Plan rollback strategies with real scenarios
-       - Create business validation criteria
-    
-    5. **PLAIN ENGLISH DOCUMENTATION**:
-       - Explain dashboards in business terms
-       - Describe consolidation benefits clearly
-       - Create user-friendly migration communications
-       - Write simple testing instructions
-    
-    CRITICAL ANALYSIS POINTS:
-    
-    - Use ACTUAL DATA VALUES to inform consolidation decisions
-    - Focus on BUSINESS IMPACT and user experience
-    - Design TESTABLE transformation rules
-    - Create ACTIONABLE migration plans
-    - Prioritise based on REAL DATA COMPLEXITY and BUSINESS VALUE
-    - Consider DATA QUALITY issues found in actual results
-    - Plan for CHANGE MANAGEMENT and user adoption
-    
-    SAMPLE DATA ANALYSIS APPROACH:
-    - Compare metric results across similar dashboards
-    - Identify data patterns that indicate consolidation opportunities  
-    - Use actual value ranges to design validation rules
-    - Analyze data quality issues for migration planning
-    - Design transformation logic based on real data behavior
-    
-    OUTPUT FOCUS:
-    Create actionable consolidation guidance that can be directly used for:
-    1. Building unified data models
-    2. Writing transformation code
-    3. Designing test cases
-    4. Planning user migration
-    5. Communicating changes to stakeholders
     """
-    
     return secondary_prompt
 
 
