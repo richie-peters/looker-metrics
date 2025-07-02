@@ -25,25 +25,20 @@ import numpy as np
 
 # Looker Analysis Prompt
 LOOKER_ANALYSIS_PROMPT = """
-Analyze these Looker Studio dashboard SQL queries and extract comprehensive metrics information with unified dataset analysis.
-INPUT DATA:
+Analyze these Looker Studio dashboard SQL queries and extract comprehensive metrics information.
+
+**ANALYSIS STRATEGY:**
+1. First, quickly assess the complexity of the provided `SQL Samples`.
+2. **If the complexity is EXTREME** (e.g., more than 5 levels of nested CTEs, dozens of complex CASE statements), you MUST prioritize metric extraction over generating a runnable SQL query.
+3. In extreme cases, set a `complexity_score` of 10, explain why in the `score_reasoning`, and set the `primary_analysis_sql` value to a simple message like: "Query generation skipped due to extreme complexity. Focus on manual metric review."
+4. **For all other cases**, generate all sections as requested.
+
+**INPUT DATA:**
 - Dashboard ID: {dashboard_id}
 - Dashboard Name: {dashboard_name}
 - SQL Samples: {sql_samples}
 
-ANALYSIS REQUIREMENTS:
-
-1. **METRIC EXTRACTION**: Identify all business metrics, dimensions, and calculations.
-2. **SQL DECOMPOSITION**: Break down complex nested queries into logical components.
-3. **DEPENDENCY MAPPING**: Identify which calculations depend on others.
-4. **BUSINESS LOGIC**: Extract the core business rules and transformations.
-5. **DATASET STRUCTURE**: Understand data grain, key dimensions, and metric interactions.
-6. **HARDCODED VALUES**: Identify hardcoded dates, values, and variables that should be parameterised or use governed tables.
-7. **UNIFIED ANALYSIS**: Create consolidated queries that analyze all metrics together.
-8. **STANDARDISATION**: Use standardised classes and values for consistent analysis.
-9. **BIGQUERY COMPLIANCE**: Generate only valid BigQuery SQL syntax.
-
-OUTPUT REQUIREMENTS (JSON):
+**OUTPUT REQUIREMENTS (JSON):**
 Return a flat JSON structure with the following schema:
 {{
   "dashboard_summary": {{
@@ -53,12 +48,12 @@ Return a flat JSON structure with the following schema:
     "business_domain": "advertising|finance|consumer|operations|marketing|sales|product|hr|other",
     "complexity_score": "A score from 1-10 on the technical complexity of the dashboard's SQL.",
     "consolidation_score": "A score from 1-10 indicating how much this dashboard would benefit from consolidation.",
-    "score_reasoning": "Briefly explain the reasoning behind the complexity and consolidation scores.",
+    "score_reasoning": "Briefly explain the reasoning behind the complexity and consolidation scores. If complexity is 10, state that the analysis SQL was skipped.",
     "total_metrics_identified": "number",
     "date_grain": "daily|weekly|monthly|quarterly|yearly|mixed|none"
   }},
   "dataset_analysis": {{
-    "primary_analysis_sql": "**THIS IS THE MAIN SQL TO RUN** - Single query showing all key metrics calculated together with appropriate sampling and date filters.",
+    "primary_analysis_sql": "**THIS IS THE MAIN SQL TO RUN** - Single query showing all key metrics calculated together with appropriate sampling and date filters. Or, a message indicating it was skipped due to complexity.",
     "structure_sql": "Query to understand data structure, grain, and key dimensions with sampling.",
     "validation_sql": "Quick validation that all metric calculations work syntactically.",
     "business_rules_sql": "Query to validate key business logic, filters, and data quality."
@@ -392,214 +387,137 @@ def run_gemini_batch_fast_slick(
         return None
 
 
+#
+# Replace the existing convert_batch_results_to_dataset with this more robust version
+#
+import pandas as pd
+import json
+import re
+
 def convert_batch_results_to_dataset(results):
-    """Convert batch prediction results to structured dataset - Updated for Standardised Structure"""
-    try:
-        # Extract responses from batch results
-        responses = []
-        for i, result in enumerate(results):
+    """
+    This function is designed for maximum resilience. It parses both dashboard
+    summaries and individual metrics piece-by-piece using regular expressions,
+    avoiding reliance on a perfectly formed JSON structure.
+    """
+    print(f"🚀 Starting resilient conversion for {len(results)} results...")
+
+    # Helper functions to safely extract values using regex
+    def safe_extract_string(text, key):
+        try:
+            match = re.search(f'"{key}"\s*:\s*"(.*?)"', text, re.DOTALL)
+            # Cleans up escaped newlines and quotes common in JSON strings
+            return match.group(1).strip().replace('\\n', ' ').replace('\\"', '"') if match else None
+        except Exception:
+            return None
+
+    def safe_extract_number(text, key):
+        try:
+            match = re.search(f'"{key}"\s*:\s*"?(\d+\.?\d*)"?', text)
+            return float(match.group(1)) if match else None
+        except (Exception, ValueError):
+            return None
+
+    def safe_extract_boolean(text, key):
+        try:
+            match = re.search(f'"{key}"\s*:\s*(true|false)', text)
+            return match.group(1) == 'true' if match else None
+        except Exception:
+            return None
+
+    def safe_extract_list(text, key):
+        try:
+            match = re.search(f'"{key}"\s*:\s*(\[.*?\])', text, re.DOTALL)
+            # This still uses json.loads, but on a much smaller, less complex part
+            return json.loads(match.group(1)) if match else []
+        except (json.JSONDecodeError, TypeError):
+            return []
+
+    # Initialize lists for data
+    dashboard_data = []
+    metrics_data = []
+    dataset_analysis_data = []
+
+    for response_id, result in enumerate(results):
+        try:
+            raw_text = result.get('response', {}).get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
+            if not raw_text:
+                print(f"⚠️ Skipping response {response_id}: No raw text found.")
+                continue
+
+            dashboard_id = safe_extract_string(raw_text, "dashboard_id")
+            if not dashboard_id:
+                print(f"✗ Skipping response {response_id}: Could not extract a dashboard_id.")
+                continue
+
+            # --- Extract Dashboard Summary Data ---
+            dashboard_row = {
+                'response_id': response_id,
+                'dashboard_id': dashboard_id,
+                'dashboard_name': safe_extract_string(raw_text, "dashboard_name"),
+                'business_domain': safe_extract_string(raw_text, "business_domain"),
+                'complexity_score': safe_extract_number(raw_text, "complexity_score"),
+                'consolidation_score': safe_extract_number(raw_text, "consolidation_score"),
+                'score_reasoning': safe_extract_string(raw_text, "score_reasoning")
+            }
+            dashboard_data.append(dashboard_row)
+
+            # --- Extract Dataset Analysis (SQL) ---
             try:
-                # Navigate to the actual Gemini response text
-                if 'response' in result and 'candidates' in result['response']:
-                    candidates = result['response']['candidates']
-                    if candidates and len(candidates) > 0:
-                        candidate = candidates[0]
-                        if 'content' in candidate and 'parts' in candidate['content']:
-                            parts = candidate['content']['parts']
-                            if parts and len(parts) > 0:
-                                response_text = parts[0]['text']
-                                responses.append({
-                                    'raw_response': response_text,
-                                    'status': 'success',
-                                    'response_id': i
-                                })
-                            else:
-                                print(f"No parts found in response {i}")
-                        else:
-                            print(f"No content/parts in response {i}")
-                    else:
-                        print(f"No candidates in response {i}")
-                else:
-                    print(f"No response/candidates in result {i}")
-                    
-            except Exception as e:
-                print(f"Error processing result {i}: {e}")
-                responses.append({
-                    'raw_response': str(result),
-                    'status': 'error',
-                    'response_id': i
-                })
-        
-        print(f"Extracted {len(responses)} responses")
-        
-        # Parse JSON responses and flatten into separate datasets
-        dashboard_data = []
-        metrics_data = []
-        metric_interactions_data = []
-        dataset_analysis_data = []
-        hardcoded_issues_data = []
-        
-        for response in responses:
-            try:
-                response_text = response['raw_response']
-                
-                # Extract JSON from markdown code blocks
-                if '```json' in response_text:
-                    json_start = response_text.find('```json') + 7
-                    json_end = response_text.find('```', json_start)
-                    json_text = response_text[json_start:json_end].strip()
-                elif '{' in response_text and '}' in response_text:
-                    json_start = response_text.find('{')
-                    json_end = response_text.rfind('}') + 1
-                    json_text = response_text[json_start:json_end]
-                else:
-                    print(f"No JSON found in response {response['response_id']}")
-                    continue
-                
-                # Parse JSON
-                parsed_response = json.loads(json_text)
-                
-                # Extract dashboard summary
-                if 'dashboard_summary' in parsed_response:
-                    dashboard_summary = parsed_response['dashboard_summary'].copy()
-                    dashboard_summary['response_id'] = response['response_id']
-                    
-                    # Process primary_data_sources (split semicolon-separated values)
-                    if 'primary_data_sources' in dashboard_summary:
-                        if isinstance(dashboard_summary['primary_data_sources'], str):
-                            dashboard_summary['data_sources_list'] = dashboard_summary['primary_data_sources'].split(';')
-                            dashboard_summary['data_sources_count'] = len(dashboard_summary['data_sources_list'])
-                        else:
-                            dashboard_summary['data_sources_list'] = dashboard_summary['primary_data_sources']
-                            dashboard_summary['data_sources_count'] = len(dashboard_summary['primary_data_sources']) if dashboard_summary['primary_data_sources'] else 0
-                    
-                    # Process hardcoded dates and values (convert to counts for analysis)
-                    if 'hardcoded_dates_found' in dashboard_summary:
-                        dashboard_summary['hardcoded_dates_count'] = len(dashboard_summary['hardcoded_dates_found']) if dashboard_summary['hardcoded_dates_found'] else 0
-                    if 'hardcoded_values_found' in dashboard_summary:
-                        dashboard_summary['hardcoded_values_count'] = len(dashboard_summary['hardcoded_values_found']) if dashboard_summary['hardcoded_values_found'] else 0
-                    if 'governance_opportunities' in dashboard_summary:
-                        dashboard_summary['governance_opportunities_count'] = len(dashboard_summary['governance_opportunities']) if dashboard_summary['governance_opportunities'] else 0
-                    
-                    dashboard_data.append(dashboard_summary)
-                
-                # Extract dataset analysis
-                if 'dataset_analysis' in parsed_response:
-                    dataset_analysis = parsed_response['dataset_analysis'].copy()
-                    dataset_analysis['response_id'] = response['response_id']
-                    dataset_analysis['dashboard_id'] = parsed_response.get('dashboard_summary', {}).get('dashboard_id', '')
-                    
-                    # Extract hardcoded issues for separate analysis
-                    if 'hardcoded_issues' in dataset_analysis:
-                        hardcoded_issues = dataset_analysis['hardcoded_issues']
-                        
-                        # Process hardcoded dates
-                        if 'hardcoded_dates' in hardcoded_issues:
-                            for date_issue in hardcoded_issues['hardcoded_dates']:
-                                date_issue_row = date_issue.copy()
-                                date_issue_row['response_id'] = response['response_id']
-                                date_issue_row['dashboard_id'] = parsed_response.get('dashboard_summary', {}).get('dashboard_id', '')
-                                date_issue_row['issue_type'] = 'hardcoded_date'
-                                hardcoded_issues_data.append(date_issue_row)
-                        
-                        # Process hardcoded variables
-                        if 'hardcoded_variables' in hardcoded_issues:
-                            for var_issue in hardcoded_issues['hardcoded_variables']:
-                                var_issue_row = var_issue.copy()
-                                var_issue_row['response_id'] = response['response_id']
-                                var_issue_row['dashboard_id'] = parsed_response.get('dashboard_summary', {}).get('dashboard_id', '')
-                                var_issue_row['issue_type'] = 'hardcoded_variable'
-                                # Process hardcoded_values list
-                                if 'hardcoded_values' in var_issue_row:
-                                    var_issue_row['hardcoded_values_count'] = len(var_issue_row['hardcoded_values']) if var_issue_row['hardcoded_values'] else 0
-                                    var_issue_row['hardcoded_values_text'] = ', '.join(var_issue_row['hardcoded_values']) if var_issue_row['hardcoded_values'] else ''
-                                hardcoded_issues_data.append(var_issue_row)
-                    
-                    dataset_analysis_data.append(dataset_analysis)
-                
-                # Extract metrics
-                if 'metrics' in parsed_response:
-                    for metric in parsed_response['metrics']:
-                        metric_row = metric.copy()
-                        metric_row['response_id'] = response['response_id']
-                        metric_row['dashboard_id'] = parsed_response.get('dashboard_summary', {}).get('dashboard_id', '')
-                        metric_row['dashboard_name'] = parsed_response.get('dashboard_summary', {}).get('dashboard_name', '')
-                        
-                        # Process list fields for easier analysis
-                        if 'depends_on_metrics' in metric_row:
-                            metric_row['depends_on_metrics_count'] = len(metric_row['depends_on_metrics']) if metric_row['depends_on_metrics'] else 0
-                            metric_row['depends_on_metrics_text'] = ', '.join(metric_row['depends_on_metrics']) if metric_row['depends_on_metrics'] else ''
-                        
-                        if 'data_sources' in metric_row:
-                            metric_row['data_sources_count'] = len(metric_row['data_sources']) if metric_row['data_sources'] else 0
-                            metric_row['data_sources_text'] = ', '.join(metric_row['data_sources']) if metric_row['data_sources'] else ''
-                        
-                        if 'filters_applied' in metric_row:
-                            metric_row['filters_applied_count'] = len(metric_row['filters_applied']) if metric_row['filters_applied'] else 0
-                            metric_row['filters_applied_text'] = ', '.join(metric_row['filters_applied']) if metric_row['filters_applied'] else ''
-                        
-                        if 'hardcoded_dates_in_metric' in metric_row:
-                            metric_row['hardcoded_dates_in_metric_count'] = len(metric_row['hardcoded_dates_in_metric']) if metric_row['hardcoded_dates_in_metric'] else 0
-                        
-                        if 'hardcoded_values_in_metric' in metric_row:
-                            metric_row['hardcoded_values_in_metric_count'] = len(metric_row['hardcoded_values_in_metric']) if metric_row['hardcoded_values_in_metric'] else 0
-                        
-                        if 'governance_issues' in metric_row:
-                            metric_row['governance_issues_count'] = len(metric_row['governance_issues']) if metric_row['governance_issues'] else 0
-                            metric_row['governance_issues_text'] = ', '.join(metric_row['governance_issues']) if metric_row['governance_issues'] else ''
-                        
-                        if 'data_quality_concerns' in metric_row:
-                            metric_row['data_quality_concerns_count'] = len(metric_row['data_quality_concerns']) if metric_row['data_quality_concerns'] else 0
-                            metric_row['data_quality_concerns_text'] = ', '.join(metric_row['data_quality_concerns']) if metric_row['data_quality_concerns'] else ''
-                        
-                        metrics_data.append(metric_row)
-                
-                # Extract metric interactions
-                if 'metric_interactions' in parsed_response:
-                    for interaction in parsed_response['metric_interactions']:
-                        interaction_row = interaction.copy()
-                        interaction_row['response_id'] = response['response_id']
-                        interaction_row['dashboard_id'] = parsed_response.get('dashboard_summary', {}).get('dashboard_id', '')
-                        
-                        # Process related_metrics list
-                        if 'related_metrics' in interaction_row:
-                            interaction_row['related_metrics_count'] = len(interaction_row['related_metrics']) if interaction_row['related_metrics'] else 0
-                            interaction_row['related_metrics_text'] = ', '.join(interaction_row['related_metrics']) if interaction_row['related_metrics'] else ''
-                        
-                        metric_interactions_data.append(interaction_row)
-                
-            except json.JSONDecodeError as e:
-                print(f"JSON parsing error for response {response['response_id']}: {e}")
-                print(f"Response preview: {response['raw_response'][:200]}...")
-            except Exception as e:
-                print(f"Error processing response {response['response_id']}: {e}")
-        
-        # Create DataFrames
-        dashboards_df = pd.DataFrame(dashboard_data) if dashboard_data else pd.DataFrame()
-        metrics_df = pd.DataFrame(metrics_data) if metrics_data else pd.DataFrame()
-        metric_interactions_df = pd.DataFrame(metric_interactions_data) if metric_interactions_data else pd.DataFrame()
-        dataset_analysis_df = pd.DataFrame(dataset_analysis_data) if dataset_analysis_data else pd.DataFrame()
-        hardcoded_issues_df = pd.DataFrame(hardcoded_issues_data) if hardcoded_issues_data else pd.DataFrame()
-        
-        print(f"✓ Created datasets:")
-        print(f"  - Dashboards: {len(dashboards_df)} rows")
-        print(f"  - Metrics: {len(metrics_df)} rows")
-        print(f"  - Metric Interactions: {len(metric_interactions_df)} rows")
-        print(f"  - Dataset Analysis: {len(dataset_analysis_df)} rows")
-        print(f"  - Hardcoded Issues: {len(hardcoded_issues_df)} rows")
-        
-        return {
-            'dashboards': dashboards_df,
-            'metrics': metrics_df,
-            'metric_interactions': metric_interactions_df,
-            'dataset_analysis': dataset_analysis_df,
-            'hardcoded_issues': hardcoded_issues_df,
-            'raw_responses': pd.DataFrame(responses)
-        }
-        
-    except Exception as e:
-        print(f"✗ Failed to convert results: {e}")
-        return None
+                sql_pattern = re.search(r'"dataset_analysis"\s*:\s*({.*?})', raw_text, re.DOTALL)
+                if sql_pattern:
+                    sql_block = json.loads(sql_pattern.group(1))
+                    sql_block['response_id'] = response_id
+                    sql_block['dashboard_id'] = dashboard_id
+                    dataset_analysis_data.append(sql_block)
+            except (json.JSONDecodeError, TypeError):
+                print(f"⚠️ Could not parse 'dataset_analysis' block for response {response_id}.")
+
+            # --- Extract Metrics ---
+            metrics_block_match = re.search(r'"metrics"\s*:\s*\[(.*)\]', raw_text, re.DOTALL)
+            if not metrics_block_match:
+                print(f"⚠️ No 'metrics' block found for response {response_id}.")
+                continue
+            
+            metric_strings = re.split(r'},\s*{', metrics_block_match.group(1))
+
+            for metric_str in metric_strings:
+                metric_row = {
+                    'response_id': response_id,
+                    'dashboard_id': dashboard_id,
+                    'metric_id': safe_extract_string(metric_str, "metric_id"),
+                    'metric_name': safe_extract_string(metric_str, "metric_name"),
+                    'metric_type': safe_extract_string(metric_str, "metric_type"),
+                    'business_description': safe_extract_string(metric_str, "business_description"),
+                    'sql_logic': safe_extract_string(metric_str, "sql_logic"),
+                    'is_kpi': safe_extract_boolean(metric_str, "is_kpi"),
+                    'business_criticality': safe_extract_string(metric_str, "business_criticality"),
+                    'depends_on_metrics': safe_extract_list(metric_str, "depends_on_metrics"),
+                    'data_quality_concerns': safe_extract_list(metric_str, "data_quality_concerns")
+                }
+                if metric_row['metric_id']:
+                    metrics_data.append(metric_row)
+        except Exception as e:
+            print(f"✗ CRITICAL FAILURE on response {response_id}: {e}")
+
+    # Create final DataFrames
+    dashboards_df = pd.DataFrame(dashboard_data)
+    metrics_df = pd.DataFrame(metrics_data)
+    dataset_analysis_df = pd.DataFrame(dataset_analysis_data)
+
+    print("\n\n--- ✓ Resilient Conversion Summary ---")
+    print(f"Total results processed: {len(results)}")
+    print(f"Dashboards extracted: {len(dashboards_df)}")
+    print(f"Metrics extracted: {len(metrics_df)}")
+    print(f"Dataset Analysis blocks extracted: {len(dataset_analysis_df)}") # Added for visibility
+    print("------------------------------------")
+    
+    # CORRECTED RETURN STATEMENT
+    return {
+        'dashboards': dashboards_df,
+        'metrics': metrics_df,
+        'dataset_analysis': dataset_analysis_df # Now correctly included
+    }
 
 
 # Legacy function for compatibility
@@ -645,71 +563,72 @@ def prepare_looker_analysis_batch(df):
 
 
 def save_datasets_to_csv(datasets, output_folder="./data/"):
-    """Save datasets to CSV files"""
-    try:
-        import os
-        os.makedirs(output_folder, exist_ok=True)
+    """
+    Saves all DataFrames present in the datasets dictionary to CSV files.
+    """
+    # Ensure the output directory exists
+    os.makedirs(output_folder, exist_ok=True)
 
-        # Save each dataset
+    if not isinstance(datasets, dict) or not datasets:
+        print("⚠️ No datasets provided to save.")
+        return False
+
+    print(f"\n💾 Saving {len(datasets)} dataset(s) to CSV files in '{output_folder}'...")
+
+    try:
         for name, df in datasets.items():
-            if df is not None and len(df) > 0:
-                output_path = f"{output_folder}looker_analysis_{name}.csv"
+            if df is not None and not df.empty:
+                output_path = os.path.join(output_folder, f"looker_analysis_{name}.csv")
                 df.to_csv(output_path, index=False)
                 print(f"✓ Saved {name}: {output_path} ({len(df)} rows)")
             else:
-                print(f"⚠️ Skipped {name}: empty dataset")
-        
-        return True 
-        
+                print(f"⚠️ Skipped saving '{name}': The dataset was empty.")
+        return True
+
     except Exception as e:
         print(f"✗ Failed to save datasets: {e}")
         return False
 
 def analyse_results_summary(datasets):
-    """Quick analysis of the results"""
+    """
+    Provides a quick summary analysis of the core 'dashboards' and 'metrics' datasets.
+    """
     print("\n" + "="*60)
-    print("LOOKER ANALYSIS RESULTS SUMMARY")
+    print("📊 LOOKER ANALYSIS RESULTS SUMMARY")
     print("="*60)
-    
-    if 'dashboards' in datasets and len(datasets['dashboards']) > 0:
+
+    if 'dashboards' in datasets and not datasets['dashboards'].empty:
         dashboards_df = datasets['dashboards']
-        print(f"\n📊 DASHBOARDS ANALYSED: {len(dashboards_df)}")
-        
+        print(f"\n📋 DASHBOARDS ANALYZED: {len(dashboards_df)}")
+
         if 'business_domain' in dashboards_df.columns:
             print("\nDomains:")
-            print(dashboards_df['business_domain'].value_counts())
-        
+            print(dashboards_df['business_domain'].value_counts().to_string())
+
         if 'complexity_score' in dashboards_df.columns:
-            print(f"\nComplexity scores:")
+            print(f"\nComplexity Scores (1-10):")
             print(f"  Average: {dashboards_df['complexity_score'].mean():.1f}")
             print(f"  Range: {dashboards_df['complexity_score'].min()} - {dashboards_df['complexity_score'].max()}")
-    
-    if 'metrics' in datasets and len(datasets['metrics']) > 0:
-        metrics_df = datasets['metrics']
-        print(f"\n📈 METRICS IDENTIFIED: {len(metrics_df)}")
-        
-        if 'metric_type' in metrics_df.columns:
-            print("\nMetric types:")
-            print(metrics_df['metric_type'].value_counts())
-        
-        if 'calculation_type' in metrics_df.columns:
-            print("\nCalculation types:")
-            print(metrics_df['calculation_type'].value_counts())
-        
-        if 'is_final_output' in metrics_df.columns:
-            final_outputs = len(metrics_df[metrics_df['is_final_output'] == True])
-            print(f"\nFinal output metrics: {final_outputs}")
-    
-    if 'raw_responses' in datasets and len(datasets['raw_responses']) > 0:
-        raw_df = datasets['raw_responses']
-        successful = len(raw_df[raw_df['status'] == 'success'])
-        failed = len(raw_df[raw_df['status'] == 'error'])
-        print(f"\n📈 PROCESSING SUMMARY:")
-        print(f"  Successful responses: {successful}")
-        print(f"  Failed responses: {failed}")
-    
-    print("\n" + "="*60)
 
+    else:
+        print("\n- No dashboard summary data to analyze.")
+
+    if 'metrics' in datasets and not datasets['metrics'].empty:
+        metrics_df = datasets['metrics']
+        print(f"\n\n📈 METRICS IDENTIFIED: {len(metrics_df)}")
+
+        if 'metric_type' in metrics_df.columns:
+            print("\nMetric Types:")
+            print(metrics_df['metric_type'].value_counts().to_string())
+
+        if 'is_kpi' in metrics_df.columns:
+            kpi_count = metrics_df['is_kpi'].sum()
+            print(f"\nKPI Metrics: {kpi_count}")
+
+    else:
+        print("\n- No metrics data to analyze.")
+
+    print("\n" + "="*60)
 
 def execute_sql_with_metadata(sql, query_type, dashboard_id, response_id, client=None, project=None):
     """Execute a single SQL query and return results with metadata"""
@@ -1660,45 +1579,61 @@ def prepare_secondary_batch_input_clean(unified_dataset, df_bq_results):
 
 def design_secondary_analysis_prompt():
     """
-    Designs the secondary analysis prompt to validate initial findings
-    and propose a data-backed consolidation strategy.
+    Designs the secondary analysis prompt, now with instructions for
+    returning a standard error object on failure.
     """
     secondary_prompt = """
-    SECONDARY LOOKER CONSOLIDATION ANALYSIS: DATA VALIDATION & STRATEGY
-    =====================================================================
+    SECONDARY LOOKER CONSOLIDATION ANALYSIS: OBSERVATION & INTERPRETATION
+    ======================================================================
 
-    You are an expert data architect. Your task is to analyze an initial AI assessment of a Looker Studio dashboard against **actual data results** from executed BigQuery queries. Your goal is to verify the initial findings and propose a high-level, data-backed strategy for consolidation.
+    You are an expert data architect. Your task is to analyze an initial AI assessment against actual data results.
+
+    **GUIDING PRINCIPLES FOR ANALYSIS:**
+    1.  INTERPRET, DON'T ASSUME: Do not assume errors or empty results are data quality issues.
+    2.  CONSIDER ALTERNATIVES: An error could be due to permissions, ephemeral tables, or a prior AI mistake.
+    3.  FRAME FINDINGS CAUTIOUSLY: Present findings as "observations" and "areas for investigation."
+
+    **ERROR HANDLING INSTRUCTIONS:**
+    If you cannot generate the complete and valid JSON response for any reason, your ENTIRE output must be ONLY the following single JSON object:
+    {
+      "consolidation_analysis": {
+        "dashboard_id": "{dashboard_id}",
+        "dashboard_name": "AI failed to process secondary analysis.",
+        "consolidation_priority": "unknown",
+        "migration_complexity": null,
+        "data_verifiability_score": 0,
+        "key_observations_from_data": "The AI model could not generate a valid secondary analysis for the provided inputs."
+      },
+      "metrics_consolidation": [],
+      "data_source_mapping": [],
+      "investigation_points": []
+    }
 
     **INPUT DATA:**
     - Dashboard ID: {dashboard_id}
     - Dashboard Name: {dashboard_name}
     - Initial AI-Generated Analysis: {original_dashboard_analysis}
-    - **Actual Data from Primary Analysis Query**: {primary_analysis_data}
-    - **Actual Data from Structure Analysis Query**: {structure_analysis_data}
-    - **Actual Data from Validation Query**: {validation_results}
-    - **Actual Data from Business Rules Query**: {business_rules_data}
-
-    **CORE OBJECTIVES:**
-    1.  **VERIFY METRICS**: Use the provided data samples to confirm or challenge the initial metric definitions.
-    2.  **IDENTIFY CONSOLIDATION OPPORTUNITIES**: Based on the actual data, identify metrics or data sources that are clear candidates for consolidation.
-    3.  **FORMULATE STRATEGY**: Propose a high-level strategy for how to approach the consolidation for this dashboard.
+    - Actual Data from Primary Analysis Query: {primary_analysis_data}
+    - Actual Data from Structure Analysis Query: {structure_analysis_data}
+    - Actual Data from Validation Query: {validation_results}
+    - Actual Data from Business Rules Query: {business_rules_data}
 
     **OUTPUT REQUIREMENTS (JSON):**
     {{
       "consolidation_analysis": {{
         "dashboard_id": "string",
         "dashboard_name": "string",
-        "consolidation_priority": "high|medium|low (Based on complexity and opportunities found)",
-        "migration_complexity": "1-10 (Based on the number of sources, metrics, and data quality issues found)",
-        "data_quality_score": "1-10 (Based on nulls, inconsistencies, or failed validation queries in the provided data)",
-        "key_findings_from_data": "A summary of the most important insights derived directly from analyzing the query results."
+        "consolidation_priority": "high|medium|low",
+        "migration_complexity": "1-10",
+        "data_verifiability_score": "1-10",
+        "key_observations_from_data": "A summary of the most important insights."
       }},
       "metrics_consolidation": [
         {{
           "current_metric_name": "string",
-          "consolidation_target_metric": "A proposed unified metric name (e.g., 'unified_revenue_usd').",
-          "data_backed_rationale": "Explain WHY these metrics should be consolidated, using evidence from the 'actual_sql_results'. For example: 'The data shows that metric_A from this dashboard and metric_B from another dashboard have nearly identical value ranges and patterns, suggesting they measure the same business concept.'",
-          "proposed_transformation": "A high-level description of the transformation logic needed (e.g., 'COALESCE values and convert currency')."
+          "consolidation_target_metric": "A proposed unified metric name.",
+          "data_backed_rationale": "Explain WHY using evidence from the 'actual_sql_results'.",
+          "data_observations": ["List of neutral observations about the data for this metric."]
         }}
       ],
       "data_source_mapping": [
@@ -1706,22 +1641,19 @@ def design_secondary_analysis_prompt():
           "current_source": "project.dataset.table",
           "consolidation_target": "proposed new unified table/view",
           "mapping_complexity": "1-10",
-          "data_backed_rationale": "Explain WHY this mapping is proposed, using evidence from the 'structure_analysis_data' (e.g., 'This source contains transactional data with a grain that matches the proposed unified `transactions` table.')."
+          "mapping_considerations": ["List of considerations for this mapping."]
         }}
       ],
-      "consolidation_strategy": {{
-          "strategic_summary": "A plain-english summary of how to approach consolidating this dashboard.",
-          "key_prerequisites": ["List of cleanup tasks or dependencies that must be addressed first (e.g., 'Address hardcoded values in `metric_X`', 'Create unified `customer_lookup` table')."],
-          "proposed_sequencing": ["High-level order of operations (e.g., '1. Unify data sources. 2. Consolidate revenue metrics. 3. Decommission old views.')"]
-      }},
-      "english_summary": {{
-        "dashboard_story": "A simple, one-paragraph description of what this dashboard does for business users.",
-        "consolidation_story": "A simple, one-paragraph explanation of how this dashboard fits into the larger consolidation effort and the benefits of doing so."
-      }}
+      "investigation_points": [
+          {{
+              "point_of_interest": "e.g., 'primary_analysis_sql query failed'",
+              "possible_causes": ["e.g., 'SQL syntax error', 'Service account lacks permissions'"],
+              "recommended_next_step": "e.g., 'Manually validate SQL syntax' or 'Check service account IAM permissions.'"
+          }}
+      ]
     }}
     """
     return secondary_prompt
-
 
 def prepare_secondary_batch_input_robust(unified_dataset, df_bq_results):
     """
@@ -2201,3 +2133,79 @@ def save_secondary_datasets_to_csv(secondary_datasets, output_folder="./data/sec
     except Exception as e:
         print(f"✗ Failed to save datasets: {e}")
         return False
+
+def create_unified_dataset(datasets):
+    """
+    Creates a unified dataset from the primary analysis outputs.
+    This function combines dashboard summaries, metrics, and governance issues
+    into a single, analyzable DataFrame, suitable for creating a knowledge base.
+    """
+    print("🔗 Creating unified dataset from analysis results...")
+
+    # Extract the dataframes from the primary output
+    dashboards_df = datasets.get('dashboards')
+    metrics_df = datasets.get('metrics')
+    # The new governance_issues_df from the updated parsing function
+    governance_issues_df = datasets.get('governance_issues')
+
+    # --- Pre-computation ---
+    # Calculate governance issue counts per metric for easier joining
+    if governance_issues_df is not None and not governance_issues_df.empty:
+        metric_issue_counts = governance_issues_df.groupby('metric_id').size().reset_index(name='governance_issues_count')
+    else:
+        metric_issue_counts = pd.DataFrame(columns=['metric_id', 'governance_issues_count'])
+
+    # Join the issue counts back to the main metrics dataframe
+    if metrics_df is not None and not metrics_df.empty:
+        metrics_with_counts_df = pd.merge(metrics_df, metric_issue_counts, on='metric_id', how='left')
+        metrics_with_counts_df['governance_issues_count'] = metrics_with_counts_df['governance_issues_count'].fillna(0).astype(int)
+    else:
+        metrics_with_counts_df = pd.DataFrame()
+
+
+    # --- Record Assembly ---
+    unified_records = []
+
+    if dashboards_df is None or dashboards_df.empty:
+        print("⚠️ No dashboard data found to create a unified dataset.")
+        return pd.DataFrame()
+
+    # Iterate through each dashboard to create a summary record
+    for _, dashboard in dashboards_df.iterrows():
+        dashboard_id = dashboard['dashboard_id']
+
+        # Get all metrics related to this dashboard
+        if not metrics_with_counts_df.empty:
+            dashboard_metrics = metrics_with_counts_df[metrics_with_counts_df['dashboard_id'] == dashboard_id]
+        else:
+            dashboard_metrics = pd.DataFrame()
+
+        # Create a summary text block for the dashboard
+        metrics_summary_parts = []
+        if not dashboard_metrics.empty:
+            for _, metric in dashboard_metrics.head(5).iterrows(): # Summary of top 5 metrics
+                metrics_summary_parts.append(f"- {metric.get('metric_name', 'Unnamed Metric')}: {metric.get('business_description', 'No description.')}")
+        metrics_summary_text = "\n".join(metrics_summary_parts)
+
+        # Build the unified record for the dashboard
+        dashboard_record = {
+            'record_id': f"{dashboard_id}_summary",
+            'record_type': 'dashboard',
+            'dashboard_id': dashboard_id,
+            'dashboard_name': dashboard.get('dashboard_name'),
+            'business_domain': dashboard.get('business_domain'),
+            'complexity_score': dashboard.get('complexity_score'),
+            'consolidation_score': dashboard.get('consolidation_score'),
+            'total_metrics': len(dashboard_metrics),
+            'total_governance_issues': dashboard_metrics['governance_issues_count'].sum(),
+            # This 'full_context' field is ideal for feeding into a RAG system
+            'full_context': f"Dashboard '{dashboard.get('dashboard_name')}' is in the {dashboard.get('business_domain')} domain. "
+                            f"It has a complexity score of {dashboard.get('complexity_score')} and a consolidation score of {dashboard.get('consolidation_score')}. "
+                            f"It contains {len(dashboard_metrics)} metrics in total. Key metrics include:\n{metrics_summary_text}"
+        }
+        unified_records.append(dashboard_record)
+
+    unified_df = pd.DataFrame(unified_records)
+    print(f"✅ Unified dataset created successfully with {len(unified_df)} dashboard summary records.")
+
+    return unified_df
