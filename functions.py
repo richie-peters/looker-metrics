@@ -1255,3 +1255,186 @@ def get_failed_sql_for_inspection(dataset_df, execution_results, error_type='typ
         print(sql[:500] + "..." if len(sql) > 500 else sql)
         print("-" * 80)
         print("\n")
+
+def auto_git_push(commit_message=None, files_to_add=".", include_timestamp=True, 
+                  dry_run=False, force_push=False):
+    """
+    Automatically commit and push changes to git
+    
+    Args:
+        commit_message (str): Custom commit message
+        files_to_add (str): Files to add ('.' for all, or specific files)
+        include_timestamp (bool): Add timestamp to commit message
+        dry_run (bool): Show what would be done without doing it
+        force_push (bool): Force push even if no changes detected
+    """
+    import subprocess
+    import os
+    from datetime import datetime
+    
+    def run_git_command(command, capture_output=True):
+        """Run git command and return result"""
+        try:
+            if dry_run:
+                print(f"[DRY RUN] Would run: {command}")
+                return True, ""
+            
+            result = subprocess.run(command, shell=True, capture_output=capture_output, 
+                                  text=True, cwd='/content/looker-metrics')
+            return result.returncode == 0, result.stdout + result.stderr
+        except Exception as e:
+            return False, str(e)
+    
+    print("🔄 Auto Git Push Starting...")
+    
+    # Check if we're in a git repository
+    success, output = run_git_command("git status --porcelain")
+    if not success:
+        print("❌ Not in a git repository or git error occurred")
+        return False
+    
+    # Check if there are changes
+    if not output.strip() and not force_push:
+        print("✅ No changes to commit")
+        return True
+    
+    print(f"📁 Changes detected:")
+    if not dry_run:
+        run_git_command("git status --short", capture_output=False)
+    
+    # Add files
+    print(f"📤 Adding files: {files_to_add}")
+    success, output = run_git_command(f"git add {files_to_add}")
+    if not success:
+        print(f"❌ Failed to add files: {output}")
+        return False
+    
+    # Create commit message
+    if commit_message is None:
+        commit_message = "Auto-commit: Updated looker analysis code"
+    
+    if include_timestamp:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        commit_message = f"{commit_message} - {timestamp}"
+    
+    # Commit changes
+    print(f"💾 Committing: {commit_message}")
+    success, output = run_git_command(f'git commit -m "{commit_message}"')
+    if not success:
+        if "nothing to commit" in output:
+            print("✅ Nothing new to commit")
+            return True
+        else:
+            print(f"❌ Failed to commit: {output}")
+            return False
+    
+    # Push to remote
+    print("🚀 Pushing to GitHub...")
+    success, output = run_git_command("git push origin main")
+    if not success:
+        print(f"❌ Failed to push: {output}")
+        return False
+    
+    print("✅ Successfully pushed to GitHub!")
+    return True
+
+def setup_auto_git_config(username, email, token):
+    """
+    One-time setup for git configuration and authentication
+    
+    Args:
+        username (str): Your GitHub username
+        email (str): Your email address  
+        token (str): Your GitHub Personal Access Token
+    """
+    import subprocess
+    
+    def run_command(command):
+        try:
+            result = subprocess.run(command, shell=True, capture_output=True, 
+                                  text=True, cwd='/content/looker-metrics')
+            return result.returncode == 0, result.stdout + result.stderr
+        except Exception as e:
+            return False, str(e)
+    
+    print("⚙️ Setting up git configuration...")
+    
+    # Set user identity
+    run_command(f'git config --global user.email "{email}"')
+    run_command(f'git config --global user.name "{username}"')
+    
+    # Set remote URL with authentication
+    repo_url = f"https://{username}:{token}@github.com/richie-peters/looker-metrics.git"
+    success, output = run_command(f'git remote set-url origin {repo_url}')
+    
+    if success:
+        print("✅ Git configuration complete!")
+        return True
+    else:
+        print(f"❌ Git configuration failed: {output}")
+        return False
+
+def create_auto_backup_decorator():
+    """
+    Create a decorator that automatically backs up after running functions
+    """
+    def auto_backup_decorator(func):
+        def wrapper(*args, **kwargs):
+            # Run the original function
+            result = func(*args, **kwargs)
+            
+            # Auto-backup after function completes
+            print(f"\n🔄 Auto-backup after {func.__name__}...")
+            auto_git_push(
+                commit_message=f"Auto-backup after running {func.__name__}",
+                include_timestamp=True
+            )
+            
+            return result
+        return wrapper
+    return auto_backup_decorator
+
+# Usage examples and setup
+def setup_git_auto_push():
+    """Setup function - run this once"""
+    print("Setting up auto-git-push...")
+    
+    # You'll need to provide these
+    USERNAME = "richie-peters"
+    EMAIL = "richie.peters@news.com.au"  
+    TOKEN = "your_github_token_here"  # Replace with your actual token
+    
+    # Setup git config
+    setup_auto_git_config(USERNAME, EMAIL, TOKEN)
+    
+    print("\n🎯 Auto-push functions ready to use!")
+    print("\nUsage examples:")
+    print("  auto_git_push()  # Simple push with default message")
+    print("  auto_git_push('Fixed bug in analysis')  # Custom message")
+    print("  auto_git_push(dry_run=True)  # See what would happen")
+
+# Convenience functions
+def quick_push(message="Quick update"):
+    """Quick push with simple message"""
+    return auto_git_push(commit_message=message)
+
+def save_progress(description="Progress checkpoint"):
+    """Save current progress"""
+    return auto_git_push(commit_message=f"Progress: {description}")
+
+def backup_now():
+    """Emergency backup"""
+    return auto_git_push(commit_message="Emergency backup", force_push=True)
+
+# Example: Auto-backup decorator usage
+@create_auto_backup_decorator()
+def my_analysis_function():
+    """Example function that auto-backs up when it finishes"""
+    print("Doing some analysis...")
+    # Your analysis code here
+    return "Analysis complete"
+
+print("✅ Auto-git-push functions loaded!")
+print("\n🚀 To get started:")
+print("1. Run: setup_git_auto_push()  # One-time setup")
+print("2. Then use: auto_git_push() or quick_push('your message')")
