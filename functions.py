@@ -1494,3 +1494,57 @@ def fix_github_authentication():
         print(f"❌ Error setting up authentication: {e}")
         return False
 
+
+def check_git_status():
+    """Check detailed git status"""
+    import subprocess
+    import os
+    
+    os.chdir('/content/looker-metrics')
+    
+    print("=== CURRENT GIT STATUS ===")
+    
+    # Check working directory status
+    result = subprocess.run('git status', shell=True, capture_output=True, text=True)
+    print("Working directory status:")
+    print(result.stdout)
+    
+    # Check if there are unpushed commits
+    print("\n=== UNPUSHED COMMITS ===")
+    result = subprocess.run('git log origin/main..HEAD --oneline', shell=True, capture_output=True, text=True)
+    if result.stdout.strip():
+        print("Unpushed commits:")
+        print(result.stdout)
+    else:
+        print("No unpushed commits")
+    
+    # Check recent commits
+    print("\n=== RECENT COMMITS ===")
+    result = subprocess.run('git log --oneline -5', shell=True, capture_output=True, text=True)
+    print(result.stdout)
+
+
+def push_existing_commits():
+    """Push any existing unpushed commits"""
+    import subprocess
+    import os
+    
+    os.chdir('/content/looker-metrics')
+    
+    # Check for unpushed commits
+    result = subprocess.run('git log origin/main..HEAD --oneline', shell=True, capture_output=True, text=True)
+    
+    if result.stdout.strip():
+        print("📤 Found unpushed commits, pushing now...")
+        push_result = subprocess.run('git push origin main', shell=True, capture_output=True, text=True)
+        
+        if push_result.returncode == 0:
+            print("✅ Successfully pushed existing commits!")
+            return True
+        else:
+            print(f"❌ Push failed: {push_result.stderr}")
+            return False
+    else:
+        print("✅ No unpushed commits found")
+        return True
+
