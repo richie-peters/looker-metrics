@@ -1548,3 +1548,214 @@ def push_existing_commits():
         print("✅ No unpushed commits found")
         return True
 
+def create_unified_dataset_from_existing(datasets, df_bq_results=None):
+    """
+    Create unified dataset from your existing separate datasets
+    """
+    import pandas as pd
+    
+    print("🔗 CREATING UNIFIED DATASET FROM YOUR EXISTING DATA")
+    print("=" * 55)
+    
+    # Get your datasets
+    dashboards_df = datasets.get('dashboards', pd.DataFrame())
+    metrics_df = datasets.get('metrics', pd.DataFrame()) 
+    metric_interactions_df = datasets.get('metric_interactions', pd.DataFrame())
+    dataset_analysis_df = datasets.get('dataset_analysis', pd.DataFrame())
+    hardcoded_issues_df = datasets.get('hardcoded_issues', pd.DataFrame())
+    
+    print(f"Input datasets:")
+    print(f"  Dashboards: {len(dashboards_df)} rows")
+    print(f"  Metrics: {len(metrics_df)} rows") 
+    print(f"  Metric Interactions: {len(metric_interactions_df)} rows")
+    print(f"  Dataset Analysis: {len(dataset_analysis_df)} rows")
+    print(f"  Hardcoded Issues: {len(hardcoded_issues_df)} rows")
+    
+    unified_records = []
+    
+    # Create dashboard-level records
+    print("\n📊 Creating dashboard-level records...")
+    for _, dashboard in dashboards_df.iterrows():
+        dashboard_id = dashboard['dashboard_id']
+        
+        # Get related data for this dashboard
+        dashboard_metrics = metrics_df[metrics_df['dashboard_id'] == dashboard_id] if not metrics_df.empty else pd.DataFrame()
+        dashboard_interactions = metric_interactions_df[metric_interactions_df['dashboard_id'] == dashboard_id] if not metric_interactions_df.empty else pd.DataFrame()
+        dashboard_analysis = dataset_analysis_df[dataset_analysis_df['dashboard_id'] == dashboard_id] if not dataset_analysis_df.empty else pd.DataFrame()
+        dashboard_issues = hardcoded_issues_df[hardcoded_issues_df['dashboard_id'] == dashboard_id] if not hardcoded_issues_df.empty else pd.DataFrame()
+        
+        # Create dashboard summary record  
+        dashboard_record = {
+            # Core identifiers
+            'record_id': f"{dashboard_id}_dashboard",
+            'dashboard_id': dashboard_id,
+            'response_id': dashboard.get('response_id', ''),
+            'record_type': 'dashboard_summary',
+            
+            # Dashboard info
+            'dashboard_name': dashboard.get('dashboard_name', ''),
+            'business_domain': dashboard.get('business_domain', ''),
+            'complexity_score': dashboard.get('complexity_score', 0),
+            'consolidation_score': dashboard.get('consolidation_score', 0),
+            'date_grain': dashboard.get('date_grain', ''),
+            'data_grain': dashboard.get('data_grain', ''),
+            'primary_data_sources': dashboard.get('primary_data_sources', ''),
+            'date_range_detected': dashboard.get('date_range_detected', ''),
+            
+            # Aggregated metrics info
+            'total_metrics_count': len(dashboard_metrics),
+            'kpi_metrics_count': len(dashboard_metrics[dashboard_metrics.get('is_kpi', False) == True]) if not dashboard_metrics.empty else 0,
+            'final_output_metrics_count': len(dashboard_metrics[dashboard_metrics.get('is_final_output', False) == True]) if not dashboard_metrics.empty else 0,
+            
+            # Governance summary
+            'hardcoded_dates_count': dashboard.get('hardcoded_dates_count', 0),
+            'hardcoded_values_count': dashboard.get('hardcoded_values_count', 0),
+            'governance_issues_count': len(dashboard_issues),
+            
+            # Interactions
+            'metric_interactions_count': len(dashboard_interactions),
+            
+            # Text summaries for embeddings
+            'dashboard_description': create_dashboard_description(dashboard, dashboard_metrics),
+            'metrics_summary': create_metrics_summary_text(dashboard_metrics),
+            'governance_summary': create_governance_summary_text(dashboard_issues),
+            'full_context': 'dashboard_summary'
+        }
+        
+        unified_records.append(dashboard_record)
+        
+        # Create individual metric records
+        for _, metric in dashboard_metrics.iterrows():
+            metric_record = {
+                'record_id': f"{dashboard_id}_{metric.get('metric_id', 'unknown')}",
+                'dashboard_id': dashboard_id,
+                'response_id': metric.get('response_id', ''),
+                'record_type': 'metric',
+                
+                # Link to dashboard
+                'dashboard_name': dashboard.get('dashboard_name', ''),
+                'business_domain': dashboard.get('business_domain', ''),
+                
+                # Metric details
+                'metric_id': metric.get('metric_id', ''),
+                'metric_name': metric.get('metric_name', ''),
+                'metric_type': metric.get('metric_type', ''),
+                'calculation_type': metric.get('calculation_type', ''),
+                'is_kpi': metric.get('is_kpi', False),
+                'is_final_output': metric.get('is_final_output', False),
+                'business_criticality': metric.get('business_criticality', ''),
+                'metric_category': metric.get('metric_category', ''),
+                'business_description': metric.get('business_description', ''),
+                'sql_logic': metric.get('sql_logic', ''),
+                
+                # Dependencies and relationships
+                'depends_on_metrics_count': metric.get('depends_on_metrics_count', 0),
+                'data_sources_count': metric.get('data_sources_count', 0),
+                'governance_issues_count': metric.get('governance_issues_count', 0),
+                
+                # Text description
+                'dashboard_description': create_metric_description(metric, dashboard),
+                'metrics_summary': metric.get('business_description', ''),
+                'governance_summary': metric.get('governance_issues_text', ''),
+                'full_context': 'individual_metric'
+            }
+            
+            unified_records.append(metric_record)
+    
+    # Convert to DataFrame
+    unified_df = pd.DataFrame(unified_records)
+    
+    print(f"\n✅ Created unified dataset:")
+    print(f"   Total records: {len(unified_df)}")
+    print(f"   Dashboard summaries: {len(unified_df[unified_df['record_type'] == 'dashboard_summary'])}")
+    print(f"   Individual metrics: {len(unified_df[unified_df['record_type'] == 'metric'])}")
+    print(f"   Columns: {len(unified_df.columns)}")
+    
+    return unified_df
+
+def create_dashboard_description(dashboard, metrics):
+    """Create readable description of dashboard"""
+    parts = []
+    
+    name = dashboard.get('dashboard_name', 'Unknown Dashboard')
+    domain = dashboard.get('business_domain', 'unknown')
+    
+    parts.append(f"{name} is a {domain} dashboard")
+    
+    if not metrics.empty:
+        kpis = len(metrics[metrics.get('is_kpi', False) == True])
+        total = len(metrics)
+        parts.append(f"containing {total} metrics")
+        if kpis > 0:
+            parts.append(f"including {kpis} key performance indicators")
+    
+    complexity = dashboard.get('complexity_score', 0)
+    if complexity > 7:
+        parts.append("with high analytical complexity")
+    elif complexity > 4:
+        parts.append("with moderate complexity")
+    
+    sources = dashboard.get('primary_data_sources', '')
+    if sources:
+        source_count = len(sources.split(';'))
+        parts.append(f"drawing from {source_count} data sources")
+    
+    return '. '.join(parts) + '.'
+
+def create_metrics_summary_text(metrics):
+    """Create text summary of metrics"""
+    if metrics.empty:
+        return "No metrics defined."
+    
+    parts = []
+    total = len(metrics)
+    kpis = len(metrics[metrics.get('is_kpi', False) == True])
+    
+    parts.append(f"Contains {total} metrics")
+    if kpis > 0:
+        parts.append(f"{kpis} are key performance indicators")
+    
+    if 'metric_category' in metrics.columns:
+        categories = metrics['metric_category'].value_counts()
+        if not categories.empty:
+            top_cat = categories.index[0]
+            parts.append(f"primarily focused on {top_cat} metrics")
+    
+    return '. '.join(parts) + '.'
+
+def create_governance_summary_text(issues):
+    """Create governance issues summary"""
+    if issues.empty:
+        return "No governance issues identified."
+    
+    parts = []
+    total = len(issues)
+    parts.append(f"Has {total} governance issues")
+    
+    if 'issue_type' in issues.columns:
+        issue_types = issues['issue_type'].value_counts()
+        for issue_type, count in issue_types.head(2).items():
+            parts.append(f"{count} {issue_type.replace('_', ' ')} issues")
+    
+    return '. '.join(parts) + '.'
+
+def create_metric_description(metric, dashboard):
+    """Create description for individual metric"""
+    parts = []
+    
+    name = metric.get('metric_name', 'Unknown Metric')
+    mtype = metric.get('metric_type', 'unknown')
+    calc_type = metric.get('calculation_type', 'unknown')
+    
+    parts.append(f"{name} is a {mtype} metric using {calc_type} calculation")
+    
+    if metric.get('is_kpi'):
+        parts.append("classified as a key performance indicator")
+    
+    if metric.get('business_description'):
+        parts.append(f"measuring {metric['business_description']}")
+    
+    parts.append(f"from the {dashboard.get('dashboard_name', 'unknown')} dashboard")
+    
+    return '. '.join(parts) + '.'
+
