@@ -1,0 +1,265 @@
+transformation_name,source_logic,target_logic,transformation_type,sql_transformation,validation_sql,rollback_plan,testing_data_sample,expected_result_range,business_validation_criteria,response_id,dashboard_id
+Future-Dated Revenue Categorization,Implicitly includes future booking dates (up to 2026-06-22) and client reporting dates (up to 2027-06-27) without explicit categorization in the dashboard's primary query (which returns no data).,"Categorize each revenue record into 'Actual', 'Booked (Future)', or 'Forecast' based on `booking_date`, `client_reporting_date`, and `revenue_transaction_status`.",business_rule_change|formula_change,"CASE 
+    WHEN transaction_status = 'Billed' AND booking_date <= CURRENT_DATE() THEN 'Actual'
+    WHEN transaction_status = 'Booked' AND booking_date > CURRENT_DATE() THEN 'Booked (Future)'
+    WHEN transaction_status = 'Forecast' THEN 'Forecast'
+    ELSE 'Other'
+END AS revenue_category","SELECT revenue_category, COUNT(*) AS record_count, SUM(gross_revenue_amount) AS total_amount FROM consolidated_sales_transactions_fact GROUP BY 1; SELECT MIN(booking_date), MAX(booking_date) FROM consolidated_sales_transactions_fact WHERE revenue_category = 'Booked (Future)';",Revert to the previous view definition or ETL process that does not apply this categorization.,"Include records with `booking_date` in the past, current date, and future. Include records with `transaction_status` as 'Billed', 'Booked', 'Forecast', and other statuses. Verify that records with `client_reporting_date` in the future are correctly categorized.","Counts and sums for 'Actual', 'Booked (Future)', and 'Forecast' categories should align with business expectations for historical and pipeline data. The 'Booked (Future)' category should only contain records with future booking dates.","Business users confirm that current period actuals, future bookings, and forecasts are correctly segregated and summed in the new dashboard. They should be able to filter by these categories.",1,52c11c9c-052a-4e45-9cda-8fecd87d7964
+Sales Data Exclusion Rules Application,"Business rules indicate significant exclusions: `records_excluded_by_suddenly_rule` (142), `records_excluded_by_division_rule` (264,741), `records_excluded_by_status_rule` (5,554,370). These are applied at some stage to the `total_records_in_scope` (46,691,868).",Apply all identified exclusion rules consistently as `WHERE` clauses or `CASE` statements during data ingestion or view creation for the consolidated fact table.,business_rule_change|source_change,"FROM source_table
+WHERE 
+    NOT (publication_code IN ('SUDDENLY_PUB_CODE_1', 'SUDDENLY_PUB_CODE_2')) -- Example for 'suddenly_rule'
+    AND NOT (division_id IN ('EXCLUDED_DIV_ID_1', 'EXCLUDED_DIV_ID_2')) -- Example for 'division_rule'
+    AND NOT (revenue_transaction_status IN ('EXCLUDED_STATUS_1', 'EXCLUDED_STATUS_2')) -- Example for 'status_rule'","SELECT COUNT(*) FROM consolidated_sales_transactions_fact; -- Should equal total_records_in_scope - sum of all excluded records.
+SELECT COUNT(*) FROM source_table WHERE publication_code IN ('SUDDENLY_PUB_CODE_1'); -- Verify counts of excluded records in source.",Remove the exclusion filters from the ETL process or the consolidated view definition.,"Test with records that are known to match the exclusion criteria (e.g., specific publication codes, division IDs, transaction statuses) and verify they are not present in the consolidated output. Also test records that should *not* be excluded.",The total record count in the consolidated fact table should precisely reflect the `total_records_in_scope` minus the sum of all records excluded by these rules. Key metric totals should also reflect these exclusions.,"Business users confirm that specific excluded data points (e.g., certain publications, divisions, or transaction statuses) are no longer visible or included in the aggregated figures in the consolidated reports.",1,52c11c9c-052a-4e45-9cda-8fecd87d7964
+N/A - Specific transformations unknown due to 'no_data' from queries.,N/A - Current calculation/logic unknown due to 'no_data' from queries.,N/A - Target unified logic cannot be specified without understanding source logic and data behavior.,N/A - Type of transformation cannot be determined without specific metric/data details.,"N/A - Specific SQL transformation cannot be provided without understanding source data, target schema, and transformation rules.",N/A - Validation SQL cannot be provided without understanding specific transformation logic and expected data outcomes.,"A detailed rollback plan would involve retaining original dashboard configurations and data sources, allowing for immediate reversion if issues arise post-migration. This would include snapshotting the target environment before deployment.",No actual data samples were available for testing due to 'no_data' status from BigQuery queries. This is a critical gap for robust transformation design and validation.,N/A - Expected result ranges cannot be determined without actual data samples and understanding of business rules.,"Business validation criteria would typically involve comparing key metrics (e.g., total circulation, revenue per channel) in the new dashboard against existing reports for a defined period, ensuring variances are within acceptable thresholds. Sign-off from finance stakeholders would be required.",3,2104a3f5-9424-4087-a928-e67fecae789a
+Standardize_Acquisition_Calculation,"Current calculation of acquisitions is ambiguous across 'daily_unique_acquisitions', 'daily_unique_acquisitions_specific_filters', 'acquisition_count', 'total_acquisition'. The 'SuperCoach Acquisition Data' business rule has a 3.39% pass rate.","A single, unified 'Unified_Acquisition_Count' metric based on a newly defined and validated business rule for what constitutes a SuperCoach acquisition. This will involve identifying unique new subscribers based on their first 'movement_date' for a specific rate plan or masthead.",business_rule_change,"WITH RankedAcquisitions AS ( SELECT *, ROW_NUMBER() OVER (PARTITION BY subscriber_id_src, sold_in_rate_plan_code ORDER BY movement_date) as rn FROM raw_subscription_data ) SELECT movement_date, subscriber_id_src, sold_in_rate_plan_code, CASE WHEN rn = 1 AND <new_business_criteria> THEN 1 ELSE 0 END AS Unified_Acquisition_Count FROM RankedAcquisitions",SELECT (records_passing_rule / records_tested) * 100 FROM business_rules_validation_table WHERE rule_name = 'SuperCoach Acquisition Data' AND validation_type = 'Business Rule Validation' AND records_tested > 0; -- Expected result > 95%,Revert Looker Studio dashboard to use the original data source and definitions. Revert any ETL changes to the previous version.,"Focus on records where the current acquisition rule fails (e.g., records contributing to the 96.61% failure rate). Test edge cases like re-subscriptions, plan changes, and free trials converting to paid.","The 'Unified_Acquisition_Count' should accurately reflect new subscribers as per the new business definition. The validation SQL should show a pass rate significantly higher than 3.39%, ideally >95%.",Business users will review a sample of transformed acquisition data and confirm that the new 'Unified_Acquisition_Count' aligns with their understanding of a 'new acquisition'. They will also verify the overall trend and magnitude of acquisitions in the rebuilt dashboard.,4,6e8b534b-485a-48dd-842d-13dc6bebb01a
+Separate_Actuals_Forecasts_by_Date,"'movement_date' column contains dates ranging from '2025-04-03' to '2029-08-28', implying a mix of actual and future-dated (forecast/budget) entries within the same field.","Introduce a 'scenario_type' dimension (e.g., 'Actual', 'Forecast', 'Budget') to clearly categorize records. Actuals will be defined as records with 'movement_date' <= CURRENT_DATE(). Forecast/Budget will be records with 'movement_date' > CURRENT_DATE() or derived from specific budget/forecast source systems.",data_structuring,"SELECT *, CASE WHEN movement_date <= CURRENT_DATE() THEN 'Actual' ELSE 'Forecast' END AS scenario_type FROM raw_subscription_data; -- Or, if separate source systems exist for budget/forecast: SELECT *, 'Actual' AS scenario_type FROM actual_source UNION ALL SELECT *, 'Forecast' AS scenario_type FROM forecast_source","SELECT COUNT(*) AS future_dated_actuals FROM unified_subscription_data WHERE scenario_type = 'Actual' AND event_date > CURRENT_DATE(); -- Expected result: 0. SELECT COUNT(DISTINCT scenario_type) FROM unified_subscription_data; -- Expected result: 2 or 3 (Actual, Forecast, Budget)",Revert Looker Studio dashboard to use the original data source. Revert ETL changes that introduced the 'scenario_type' or separated tables.,Use sample data including both past and future 'movement_date' values to ensure correct categorization. Verify that records with 'movement_date' in 2029 are correctly marked as 'Forecast'.,No 'Actual' records should have a future 'event_date'. All records should have a clearly assigned 'scenario_type'.,"Business users will confirm that historical data is presented as 'Actual' and future data is correctly categorized as 'Forecast' or 'Budget', aligning with their planning cycles and reporting needs.",4,6e8b534b-485a-48dd-842d-13dc6bebb01a
+Unified Gross Revenue Calculation,"Multiple columns: total_gross_revenue_amount, cy_gross_revenue_amount, total_current_fy_gross_revenue, current_fy_gross_revenue, programmatic_gross_revenue_oct_foxtel_pluto, etc. Each potentially has implicit filters or time contexts.","A single `gross_revenue_amount` column in the `Fact_Finance_Acquisition` table, with associated `fiscal_year_offset` and `revenue_type` dimensions to provide context.",formula_change|aggregation_change|source_change,"COALESCE(
+    CASE WHEN financial_year = (SELECT MAX(financial_year) FROM source_table) THEN total_current_fy_gross_revenue ELSE NULL END,
+    CASE WHEN financial_year = (SELECT MAX(financial_year) FROM source_table) - 1 THEN total_previous_fy_gross_revenue ELSE NULL END,
+    total_gross_revenue_amount,
+    cy_gross_revenue_amount,
+    ly_gross_revenue_amount,
+    programmatic_gross_revenue_oct_foxtel_pluto
+) AS gross_revenue_amount,
+CASE
+    WHEN financial_year = (SELECT MAX(financial_year) FROM source_table) THEN 0
+    WHEN financial_year = (SELECT MAX(financial_year) FROM source_table) - 1 THEN -1
+    ELSE NULL
+END AS fiscal_year_offset","SELECT SUM(gross_revenue_amount) FROM unified_finance_acquisition_fact WHERE fiscal_year_offset = 0; -- Compare to original current_fy_gross_revenue
+SELECT SUM(gross_revenue_amount) FROM unified_finance_acquisition_fact WHERE fiscal_year_offset = -1; -- Compare to original previous_fy_gross_revenue",Revert to the previous dashboard version and data source. Analyze transformation logs for errors. Isolate problematic data segments for re-processing.,"Use a subset of the 31M+ records, focusing on periods with known `total_gross_revenue_amount`, `total_current_fy_gross_revenue`, and `total_previous_fy_gross_revenue` values. Include edge cases like zero values or periods with missing data for certain revenue types.",Aggregated gross revenue amounts should match the original dashboard's reported figures for corresponding fiscal years and periods within a 0.1% tolerance.,"Finance team to review and sign off on key financial reports (e.g., P&L, revenue by masthead, revenue by advertiser) generated from the new model, ensuring consistency with existing validated reports.",5,4d22b4c2-4bb3-49db-a0c1-4d46d4fba101
+Source Channel Cleansing and Standardization,"`source_channel` column, which has a 29.35% pass rate for 'Not Null' rule, meaning ~70% are NULL.",A standardized `channel_name` in `Dim_Channel` table. NULL values will be mapped to 'Unknown' or 'Unspecified' to ensure completeness and prevent data loss during analysis.,business_rule_change|data_cleansing,"CASE
+    WHEN source_channel IS NULL OR TRIM(source_channel) = '' THEN 'Unknown'
+    ELSE TRIM(source_channel)
+END AS channel_name","SELECT COUNT(*) FROM unified_finance_acquisition_fact WHERE channel_name = 'Unknown'; -- Should be approximately 70% of total records initially
+SELECT DISTINCT channel_name FROM unified_finance_acquisition_fact ORDER BY channel_name; -- Verify no empty strings or unexpected values",Revert to the previous data load. Re-evaluate the source data quality for `source_channel` and adjust the cleansing logic or upstream data capture processes.,"Select records where `source_channel` is NULL, empty string, or contains unexpected values. Also, include records with valid `source_channel` values (e.g., 'Twitter', 'Google' from sample).",The count of 'Unknown' `channel_name` should match the original count of NULL/empty `source_channel` values. All other `source_channel` values should be correctly mapped and trimmed.,"Marketing and Acquisition teams to review channel performance reports, ensuring that the 'Unknown' category is clearly understood and that known channels are accurately represented. Agreement on the 'Unknown' label.",5,4d22b4c2-4bb3-49db-a0c1-4d46d4fba101
+Standardize Net Revenue Calculation,Assumed: SUM(sales_amount) - SUM(returns_amount) from various source tables.,SUM(CASE WHEN transaction_type = 'SALE' THEN amount ELSE -amount END) WHERE transaction_status = 'COMPLETED' FROM fct_finance_transactions,formula_change,Cannot provide specific SQL without actual data. Conceptual SQL: SELECT SUM(CASE WHEN transaction_type = 'SALE' THEN amount ELSE -amount END) AS net_revenue FROM `finance_consolidated.fct_finance_transactions` WHERE dim_date.date_key BETWEEN 'start_date' AND 'end_date';,Cannot provide specific SQL without actual data. Conceptual SQL: SELECT (SELECT SUM(old_revenue_calc) FROM old_dashboard_source) - (SELECT SUM(new_revenue_calc) FROM new_consolidated_source) AS revenue_difference; -- Expected difference close to zero.,Revert Looker Studio dashboard to original data sources and calculations. Re-route data pipelines to original targets if necessary. Communicate rollback to users.,"Not available due to no data returned. Would require a representative sample of sales and return transactions, including edge cases like zero-value transactions, high-value transactions, and transactions with multiple line items.","Not available due to no data returned. Would expect positive values for revenue, with typical ranges based on historical performance. Validation would involve comparing against known source system totals.",Net Revenue figures for key publishers and products must match existing reports within a 0.5% tolerance. Trends over time must be consistent. Drill-down to individual transactions must be accurate.,8,d3bcf796-2396-4a6f-b0a3-da0b7f299a58
+N/A - Blocked by Data Availability,Cannot determine current source logic as all BigQuery queries returned 'no_data'.,Cannot define specific target logic without understanding current state and data patterns. The first 'transformation' is to ensure data is available and flowing correctly.,source_change,No specific SQL transformation can be defined until the underlying data source issue is resolved and data is accessible. The immediate 'transformation' is to fix the data pipeline/source.,"No specific validation SQL can be defined. Initial validation will be to confirm data presence (e.g., `SELECT COUNT(*) FROM your_table WHERE date_column >= CURRENT_DATE - INTERVAL 7 DAY`).","The primary rollback plan for the 'no_data' issue is to revert any recent changes to data pipelines, BigQuery tables, or Looker Studio data source configurations that might have caused the data loss.",No testing data sample can be provided as all queries returned 'no_data'.,"The immediate expected result is to see *any* data returned, indicating the underlying issue is resolved and the dashboard is no longer blank.","Business users will validate by confirming that the dashboard displays data and that key metrics (e.g., total subscribers, new subscriptions) appear to be within expected ranges and reflect current business operations, once data is restored.",9,5dae02f0-dc48-418c-bdf9-5e5d2b1d6e26
+Standardize Gross Revenue to Kilo-Units,"Multiple columns like 'total_current_fy_gross_revenue_display', 'ly_gross_revenue_amount_k', 'current_fy_gross_revenue_000s' exist, where the value is the base gross revenue divided by 1000. The raw 'total_current_fy_gross_revenue' is also present.",Store gross revenue in its base unit in the 'fact_sales_revenue' table. A single 'gross_revenue_k' metric will be calculated in the Looker Studio model or a final reporting view by dividing the base unit by 1000 for display.,formula_change,"-- ETL/ELT process to load fact_sales_revenue:
+SELECT
+    ...,
+    CASE
+        WHEN source_metric_name LIKE '%_display' THEN original_value * 1000
+        WHEN source_metric_name LIKE '%_k' THEN original_value * 1000
+        WHEN source_metric_name LIKE '%_000s' THEN original_value * 1000
+        ELSE original_value -- Assume base unit if no suffix
+    END AS gross_revenue_base_unit,
+    ...
+FROM
+    source_data_extract;
+
+-- Looker Studio calculated field or final reporting view:
+SELECT
+    ...,
+    SUM(gross_revenue_base_unit) / 1000 AS gross_revenue_k,
+    ...
+FROM
+    fact_sales_revenue;","SELECT
+    SUM(CASE WHEN metric_name = 'total_current_fy_gross_revenue' THEN value ELSE 0 END) AS original_raw_sum,
+    SUM(CASE WHEN metric_name = 'total_current_fy_gross_revenue_display' THEN value ELSE 0 END) AS original_display_sum,
+    SUM(CASE WHEN metric_name = 'gross_revenue_k' THEN value ELSE 0 END) AS new_k_value_sum
+FROM
+    (
+        SELECT 'total_current_fy_gross_revenue' as metric_name, total_current_fy_gross_revenue as value FROM `primary_analysis_data_sample`
+        UNION ALL
+        SELECT 'total_current_fy_gross_revenue_display' as metric_name, total_current_fy_gross_revenue_display as value FROM `primary_analysis_data_sample`
+        UNION ALL
+        SELECT 'gross_revenue_k' as metric_name, (total_current_fy_gross_revenue / 1000) as value FROM `primary_analysis_data_sample`
+    ) AS combined_data;
+-- Expected Result: original_raw_sum / 1000 = original_display_sum = new_k_value_sum (allowing for minor floating point differences)","Revert to using the original '_display', '_k', and '_000s' metrics directly from the source view/table, bypassing the new consolidated model for these specific metrics.","{
+  ""financial_short_month"": ""Jul"",
+  ""advertiser_parent"": ""ABC SEAMLESS"",
+  ""total_current_fy_gross_revenue"": 865.4699999999999,
+  ""total_current_fy_gross_revenue_display"": 0.86547
+}","For the sample record, 'gross_revenue_k' should be 0.86547. Across the dataset, values should be consistent with the original '_display' metrics.","Business users will verify that the 'Total Gross Revenue (K)' metric in the new dashboard aligns precisely with the values they previously saw in the old dashboard's 'Total Gross Revenue Display' or 'Total Gross Revenue K' metrics, for various dimensions and time periods.",12,9269e9c6-1ad0-4415-96c3-aca8a710ba01
+Unify Revenue Type Categorization,"'revenue_group_subtype' and 'revenue_type' columns both contain categorical values like 'PRINT' and 'DIGITAL', indicating redundancy or a need for clear hierarchy.","Create a single 'revenue_category' field in a new 'dim_revenue_type' dimension table. This dimension will serve as the single source of truth for revenue categorization, linked to the fact table via a foreign key.",source_change,"-- ETL/ELT process to load dim_revenue_type:
+INSERT INTO dim_revenue_type (revenue_type_key, revenue_category_name)
+SELECT DISTINCT
+    FARM_FINGERPRINT(COALESCE(revenue_type, revenue_group_subtype)), -- Generate a unique key
+    COALESCE(revenue_type, revenue_group_subtype) -- Prioritize revenue_type, then subtype
+FROM
+    source_table
+WHERE
+    COALESCE(revenue_type, revenue_group_subtype) IS NOT NULL;
+
+-- ETL/ELT process to load fact_sales_revenue:
+SELECT
+    st.*,
+    drt.revenue_type_key
+FROM
+    source_table st
+JOIN
+    dim_revenue_type drt
+ON
+    drt.revenue_category_name = COALESCE(st.revenue_type, st.revenue_group_subtype);","SELECT
+    COUNT(DISTINCT T1.revenue_type) AS distinct_revenue_types_original,
+    COUNT(DISTINCT T1.revenue_group_subtype) AS distinct_revenue_subtypes_original,
+    COUNT(DISTINCT T2.revenue_category_name) AS distinct_revenue_categories_new
+FROM
+    `primary_analysis_data_sample` T1
+LEFT JOIN
+    `dim_revenue_type` T2 ON TRUE; -- Assuming dim_revenue_type is populated and accessible
+-- Expected Result: The number of distinct new categories should be equal to or less than the combined distinct values from the original fields, ensuring no new categories are introduced unintentionally.",Revert to using 'revenue_type' and 'revenue_group_subtype' directly from the original source table/view for categorization.,"[
+  {
+    ""revenue_group_subtype"": ""PRINT"",
+    ""revenue_type"": ""PRINT""
+  },
+  {
+    ""revenue_group_subtype"": ""DIGITAL"",
+    ""revenue_type"": ""DIGITAL""
+  },
+  {
+    ""revenue_group_subtype"": ""OTHER"",
+    ""revenue_type"": null
+  }
+]","The 'revenue_category' dimension should contain 'PRINT', 'DIGITAL', and 'OTHER' (if applicable) as distinct values, with all records correctly mapped to one of these categories.","Business users will confirm that revenue segmentation by the new 'Revenue Category' field (e.g., PRINT/DIGITAL) is accurate, comprehensive, and consistent with their understanding of revenue types from previous reports.",12,9269e9c6-1ad0-4415-96c3-aca8a710ba01
+Sales Amount Currency Conversion,SUM(Sales_Revenue) - Assumes local currency or single currency.,"SUM(fct_sales.sales_amount_usd) - Converts all sales revenue to a unified reporting currency (e.g., USD) using historical exchange rates.",formula_change,"SELECT transaction_id, transaction_date, customer_id, product_id, sales_revenue * fx.exchange_rate AS sales_amount_usd FROM sales_raw.sales_transactions st JOIN dim_currency_exchange_rates fx ON st.currency_code = fx.from_currency AND fx.to_currency = 'USD' AND st.transaction_date = fx.exchange_date;","SELECT SUM(CASE WHEN original_currency = 'USD' THEN original_amount ELSE original_amount * fx_rate END) AS calculated_usd, SUM(consolidated_usd_amount) AS actual_consolidated_usd FROM (SELECT ... original data ... JOIN ... consolidated data ...); -- Compare sums for a given period. (Cannot execute without actual data)",Revert to original data sources and dashboard configurations. Communicate impact on reporting to stakeholders.,N/A - Actual data not available. Would require a sample of sales transactions with various currencies and corresponding exchange rates.,N/A - Actual data not available. Would expect converted amounts to be within a reasonable range based on historical exchange rates.,Finance team to verify total sales amounts for key periods match expected values after currency conversion. Spot check individual high-value transactions.,15,80ca81f3-0671-40ef-a0a9-825a1580ca1b
+Sales Target Aggregation,"SUM(Sales_Target) - May be at varying granularities (e.g., monthly, quarterly, by team).","SUM(fct_sales_targets.target_amount_usd) - Aggregates targets to a standardized monthly or quarterly granularity, aligned with the unified date dimension and organizational hierarchy.",aggregation_change,"INSERT INTO finance_consolidated.fct_sales_targets (target_date_key, team_id, target_amount_usd) SELECT DATE_TRUNC(target_period, MONTH) AS target_date_key, team_id, SUM(target_amount) AS target_amount_usd FROM sales_raw.sales_targets GROUP BY 1, 2;","SELECT SUM(original_target_amount) AS original_sum, SUM(consolidated_target_amount) AS consolidated_sum FROM (SELECT ... original data ... JOIN ... consolidated data ...); -- Compare sums for a given period and team. (Cannot execute without actual data)",Revert to original target data sources and dashboard configurations. Inform sales operations and finance teams.,N/A - Actual data not available. Would require a sample of sales targets at different granularities and for various teams.,N/A - Actual data not available. Would expect aggregated targets to match original sums when rolled up to the same level.,Sales operations and finance teams to confirm that consolidated sales targets align with their records for specific periods and organizational units.,15,80ca81f3-0671-40ef-a0a9-825a1580ca1b
+Revenue Category Standardization,"Implicit categorization based on internal business rules, as evidenced by `xtend_category_count`, `programmatic_category_count`, etc. The exact SQL logic is not provided but its results are.","A standardized `revenue_category` column in `Fact_Revenue` derived from source attributes, ensuring consistent classification across all revenue reporting.",business_rule_change,"CASE
+    WHEN [source_field_1] = 'X' AND [source_field_2] = 'Y' THEN 'Xtend'
+    WHEN [source_field_3] LIKE '%Programmatic%' THEN 'Programmatic'
+    WHEN [source_field_4] IN ('ADPT', 'DIGITAL') THEN 'Adpt Digital'
+    WHEN [source_field_5] = 'Sundry' THEN 'Sundry'
+    ELSE 'Other'
+END AS revenue_category","SELECT revenue_category, COUNT(*) AS record_count FROM finance.consolidated_revenue_fact GROUP BY revenue_category;","Revert to previous dashboard data source and logic. This transformation is applied during ETL, so rollback would involve re-running previous ETL or restoring from a backup.","The `business_rules_sql` sample data, specifically the `records_tested` (2,856,303) and the individual category counts (xtend_category_count: 54763, programmatic_category_count: 2472887, adpt_digital_category_count: 169258, sundry_category_count: 659, other_category_count: 158736).","Counts for each category should match the provided sample data after transformation. Total records should remain 2,856,303.","Business users confirm that the counts for each revenue category in the new dashboard match their understanding and historical reports, and that the categorization logic correctly reflects business definitions.",16,a1b901e6-c4fb-44bc-955a-3d7070c15829
+Movement Date Interpretation & Mapping,"The `movement_date` field is currently interpreted as a date, but its values (2025-05-02 to 2025-07-02) are in the future.","Based on business clarification, map `movement_date` to either `Fact_Revenue.booking_date` (if it represents future bookings/forecasts) or `Fact_Revenue.transaction_date` (if it's a data quality error and should be historical). If it's a forecast, it might need to be linked to a specific `forecast_period` dimension.",source_change / data_quality_fix,"/* Requires business decision */
+-- Option 1: If it's a booking/forecast date
+SELECT ..., movement_date AS booking_date, ... FROM source_table;
+-- Option 2: If it's a data quality issue and should be historical, filter or correct
+SELECT ..., movement_date AS transaction_date, ... FROM source_table WHERE movement_date <= CURRENT_DATE(); -- Or apply a data correction process","SELECT MIN(booking_date), MAX(booking_date) FROM finance.consolidated_revenue_fact WHERE booking_date IS NOT NULL;","Stop ETL process, revert to previous data load, and re-evaluate the `movement_date` interpretation with business stakeholders.",The provided `earliest_movement_date`: '2025-05-02' and `latest_movement_date`: '2025-07-02'.,"If mapped to `booking_date`, the range should reflect the future booking period. If corrected to `transaction_date`, the range should be historical and within expected operational periods.",Business users confirm the correct interpretation of the 'movement_date' field and validate that the date ranges and associated revenue figures align with their understanding of current bookings/forecasts or historical actuals.,16,a1b901e6-c4fb-44bc-955a-3d7070c15829
+Contra Revenue Calculation,Unknown due to 'no_data' from primary analysis. Implied by dashboard name 'Contra Report' and metrics like 'Total Actual Amount'.,SUM(fact_contra_revenue.actual_amount) WHERE fact_contra_revenue.transaction_type = 'Contra' AND fact_contra_revenue.is_active_record = TRUE,calculation_change,"SELECT
+  dim_date.fiscal_year,
+  dim_advertiser.advertiser_name,
+  SUM(fact_contra_revenue.actual_amount) AS Consolidated_Contra_Actual_Amount
+FROM
+  finance.consolidated_contra_revenue_fact AS fact_contra_revenue
+JOIN
+  finance.dim_date AS dim_date ON fact_contra_revenue.date_key = dim_date.date_key
+JOIN
+  finance.dim_advertiser AS dim_advertiser ON fact_contra_revenue.advertiser_key = dim_advertiser.advertiser_key
+WHERE
+  fact_contra_revenue.transaction_type = 'Contra'
+GROUP BY 1, 2;","SELECT
+  'Validation Check' AS test_type,
+  COUNTIF(Consolidated_Contra_Actual_Amount > 0) AS positive_amount_count,
+  COUNT(DISTINCT advertiser_name) AS distinct_advertisers_count,
+  MAX(fiscal_year) AS latest_fiscal_year
+FROM (
+  SELECT
+    dim_date.fiscal_year,
+    dim_advertiser.advertiser_name,
+    SUM(fact_contra_revenue.actual_amount) AS Consolidated_Contra_Actual_Amount
+  FROM
+    finance.consolidated_contra_revenue_fact AS fact_contra_revenue
+  JOIN
+    finance.dim_date AS dim_date ON fact_contra_revenue.date_key = dim_date.date_key
+  JOIN
+    finance.dim_advertiser AS dim_advertiser ON fact_contra_revenue.advertiser_key = dim_advertiser.advertiser_key
+  WHERE
+    fact_contra_revenue.transaction_type = 'Contra'
+  GROUP BY 1, 2
+) AS consolidated_data;",Revert dashboard to previous data source/query configuration. This is complex given the current 'no data' state; a full rebuild might be necessary if the original configuration is unrecoverable.,"Requires synthetic data or a small, representative subset of historical contra transactions once the underlying data source issue is resolved. Focus on samples with positive, negative, and zero contra amounts, and various transaction statuses.","Contra amounts should typically be negative or zero (representing deductions). Total contra revenue should be a negative sum, or positive if reported as an absolute value. Range will depend on business scale (e.g., -1,000,000 to 0).","Business users will verify that the consolidated contra revenue figures align with their understanding of financial performance, reconcile with source system reports, and reflect expected trends over time. Specific attention to large contra entries and their impact on net revenue.",17,b9dfd2f4-92fa-4f81-a5b1-17de880470f9
+Analysis Not Possible - No Actual Data,Cannot determine current calculation logic or data patterns without actual data samples or SQL execution results.,Cannot define target unified logic without understanding source logic and data behavior.,"Cannot specify transformation type (e.g., formula_change, aggregation_change) without data.","Cannot provide specific SQL transformations without understanding current data structures, calculations, and target model.","Cannot provide validation SQL without knowing the data ranges, expected outputs, or transformation logic.",Cannot define specific rollback steps without a concrete migration plan based on data. General plan would involve reverting to previous dashboard version and data sources.,No testing data samples available as no actual data was provided.,Cannot define expected result ranges without actual data and transformation logic.,Cannot define specific business validation criteria without knowing the current metrics and their business definitions. General criteria would involve comparing key financial figures and trends.,18,bb49fa78-5abe-4e68-a9c1-8172a832e724
+Standardize_Ad_Spend_Currency,Cannot determine current logic due to 'no_data'. Assumed to be raw spend values from ad platforms.,"Convert all ad spend to a single reporting currency (e.g., USD) using daily exchange rates.",formula_change,Cannot provide specific SQL without knowing source table and field names. Example: `SELECT spend_local * exchange_rate_usd AS spend_usd FROM raw_ad_data JOIN exchange_rates ON raw_ad_data.date = exchange_rates.date`,Cannot provide specific SQL. Example: `SELECT SUM(spend_usd) FROM consolidated_table WHERE date = 'YYYY-MM-DD'`. Compare with sum of local spend converted manually for a sample day.,Revert to previous data pipeline version or re-ingest raw data if transformation errors are detected.,Requires a sample of actual ad spend data with various currencies and corresponding exchange rates. (Not available due to 'no_data'),Expected spend values should be positive and within reasonable ranges for advertising budgets. (Cannot provide specific range due to 'no_data'),Business users confirm that consolidated spend figures align with their expectations and source system reports for key campaigns/periods.,20,b15d856f-e3ce-4991-bf2a-92395390524f
+Financial Week Exclusion Rule Application,"The dashboard applies a 'financial week exclusion rule' that filters out a specific set of records. The `business_rules_sql` indicates that out of 5,820,463 total records, 627,347 records are in 'excluded weeks', resulting in 5,193,116 records 'passing exclusion rule' (89.22% pass rate). The exact conditions for this exclusion are not detailed but involve `fiscal_week_id` and potentially other criteria (e.g., `sundry_adsales_overlay_data_test`).","Implement the precise logic of the `financial_week_exclusion_rule` as a derived column or a filtering step within the ETL/ELT process populating the `fct_ad_sales_revenue` table. This logic should identify records that are 'excluded' and either filter them out or flag them for conditional aggregation. The `sundry_adsales_overlay_data_test` also passed, suggesting another related filtering condition.",business_rule_change,"-- Example SQL (exact conditions for exclusion rule need to be defined)
+SELECT
+    t.*,
+    CASE
+        WHEN t.fiscal_week_id IN (SELECT excluded_week_id FROM dim_excluded_fiscal_weeks) THEN FALSE
+        WHEN t.sundry_adsales_overlay_flag = TRUE THEN FALSE -- Assuming this is another exclusion condition
+        ELSE TRUE
+    END AS is_included_for_pacing_revenue
+FROM
+    source_table t;","-- Validate the application of the exclusion rule in the new model
+SELECT
+    COUNT(*) AS total_records_new_model,
+    COUNTIF(NOT is_included_for_pacing_revenue) AS excluded_records_new_model,
+    COUNTIF(is_included_for_pacing_revenue) AS included_records_new_model,
+    (COUNTIF(is_included_for_pacing_revenue) * 100.0 / COUNT(*)) AS new_pass_rate_percentage
+FROM
+    unified_finance.sales.fct_ad_sales_revenue;
+
+-- Expected: new_pass_rate_percentage should be ~89.22%","Revert the ETL/ELT pipeline to the previous version that does not apply the new exclusion logic, or temporarily disable the filter in the reporting layer.","Use the full dataset of 5,820,463 records. Specifically, verify that the 627,347 records previously identified as 'records_in_excluded_weeks' are correctly excluded or flagged, and the 5,193,116 'records_passing_exclusion_rule' are correctly included.","The number of included records should be approximately 5,193,116, and the number of excluded records should be approximately 627,347, maintaining an 89.22% pass rate.","Business users confirm that the total revenue figures and pacing calculations derived from the new model accurately reflect their understanding, specifically verifying that the intended records are correctly included/excluded based on the defined business rules.",24,3ee20092-1897-49b7-8bcd-4157d5f816eb
+Standardize_Financial_Amounts_and_Scenarios,"SELECT total_actual_amount, total_estimate, total_budget_amount, total_forecast_amount, ... FROM original_source_view","SELECT 'Actual' AS scenario_type, total_actual_amount AS unified_amount, ... UNION ALL SELECT 'Estimate' AS scenario_type, total_estimate AS unified_amount, ... UNION ALL ...",aggregation_change,"WITH SourceData AS (
+  SELECT
+    *, -- Include all relevant dimensions
+    total_actual_amount,
+    total_estimate,
+    total_budget_amount,
+    total_forecast_amount
+  FROM `your_project.your_dataset.original_finance_view`
+)
+SELECT
+  sd.Advertiser,
+  sd.financial_year,
+  sd.financial_month,
+  'Actual' AS scenario_type,
+  sd.total_actual_amount AS Unified_Financial_Amount
+FROM SourceData sd
+WHERE sd.total_actual_amount IS NOT NULL
+UNION ALL
+SELECT
+  sd.Advertiser,
+  sd.financial_year,
+  sd.financial_month,
+  'Estimate' AS scenario_type,
+  sd.total_estimate AS Unified_Financial_Amount
+FROM SourceData sd
+WHERE sd.total_estimate IS NOT NULL
+UNION ALL
+SELECT
+  sd.Advertiser,
+  sd.financial_year,
+  sd.financial_month,
+  'Budget' AS scenario_type,
+  sd.total_budget_amount AS Unified_Financial_Amount
+FROM SourceData sd
+WHERE sd.total_budget_amount IS NOT NULL
+UNION ALL
+SELECT
+  sd.Advertiser,
+  sd.financial_year,
+  sd.financial_month,
+  'Forecast' AS scenario_type,
+  sd.total_forecast_amount AS Unified_Financial_Amount
+FROM SourceData sd
+WHERE sd.total_forecast_amount IS NOT NULL","SELECT scenario_type, SUM(Unified_Financial_Amount) FROM `your_project.your_dataset.consolidated_finance_fact` GROUP BY 1;",Revert to previous version of the data model and dashboard configuration. Re-enable original data sources.,"Use the provided `primary_analysis_sql` sample data, specifically focusing on `scenario_dimension` and the implied amounts. Create a small dataset with known values for actual, estimate, budget, and forecast for a few advertisers and periods.","The sum of `Unified_Financial_Amount` for each scenario type should match the original dashboard's totals for 'Actual', 'Estimate', 'Budget', 'Forecast'. For 'Estimate', the sum should correspond to the original `total_estimate` values.","Business users will verify that the total amounts for Actuals, Budget, Estimates, and Forecasts, when filtered by scenario type, match their existing reports and expectations for key periods and dimensions.",26,52dd1ac1-19b5-4695-a7e6-632ef7a9dba3
+Standardize_Monetary_Units,"SELECT ly_gross_revenue_amount, ly_gross_revenue_amount_k, cy_gross_revenue_amount, cy_gross_revenue_amount_k, ... FROM original_source_view","SELECT (CASE WHEN metric_name LIKE '%_k' THEN original_value * 1000 ELSE original_value END) AS Standardized_Amount, ...",formula_change,"UPDATE `your_project.your_dataset.consolidated_finance_fact`
+SET Gross_Revenue_Amount = Gross_Revenue_Amount * 1000
+WHERE original_source_column_name LIKE '%_k'; -- This is a conceptual update. In ETL, it's done during insertion.
+
+-- Example for a new column in ETL:
+SELECT
+  Advertiser,
+  financial_year,
+  CASE
+    WHEN original_column_name = 'ly_gross_revenue_amount_k' THEN ly_gross_revenue_amount_k * 1000
+    WHEN original_column_name = 'cy_gross_revenue_amount_k' THEN cy_gross_revenue_amount_k * 1000
+    ELSE total_gross_revenue_amount -- Assuming this is already in base units
+  END AS Gross_Revenue_Amount_Standardized
+FROM `your_project.your_dataset.original_finance_view`;","SELECT COUNT(*) FROM `your_project.your_dataset.consolidated_finance_fact` WHERE Gross_Revenue_Amount < 1000 AND original_source_column_name LIKE '%_k'; -- Should return 0 if conversion worked. Also, check sums.
+SELECT SUM(Gross_Revenue_Amount) FROM `your_project.your_dataset.consolidated_finance_fact` WHERE fiscal_year = 'FY2024' AND scenario_type = 'Actual' = (SELECT SUM(ly_gross_revenue_amount) FROM original_dashboard_source WHERE fy_year = 'FY2024');",Revert to previous ETL/ELT pipeline version that did not apply the unit conversion.,"Create a sample with known values for both '_k' and non-'_k' metrics, e.g., `ly_gross_revenue_amount_k = 100` (expected 100,000) and `total_gross_revenue_amount = 50000` (expected 50,000).","All monetary values in the consolidated model should be in the base currency unit (e.g., dollars), without the 'k' scaling. The `gross_revenue_positive_test` should still pass.","Business users will confirm that the reported monetary values (e.g., Gross Revenue, Spend) align with their financial records and expectations, without requiring manual mental conversion for 'thousands'.",26,52dd1ac1-19b5-4695-a7e6-632ef7a9dba3
+Unify_Financial_Periods_and_Dates,"Multiple date/period columns (e.g., date_dim, calendar_year, financial_year, financial_month, fiscal_week_id, fy_year_month_number) across different source tables (programmatic_cal_month, programmatic_fin_month).","A single `Dim_Date` table containing all relevant calendar and financial date attributes, linked to the `Fact_Advertising_Pacing` via a date key.",data_model_change,"CREATE TABLE unified_finance.Dim_Date AS SELECT DISTINCT calendar_date, calendar_year, calendar_quarter, financial_year, financial_month, fiscal_week_id, fy_year_month_number, ... FROM (SELECT date_dim AS calendar_date, calendar_year, financial_year, financial_month, fiscal_week_id, fy_year_month_number, ... FROM programmatic_cal_month UNION ALL SELECT NULL AS calendar_date, calendar_year, financial_year, financial_month, fiscal_week_id, fy_year_month_number, ... FROM programmatic_fin_month); -- Actual SQL would be more complex, involving date generation and attribute derivation.","SELECT COUNT(DISTINCT calendar_year) FROM unified_finance.Dim_Date; -- Should match unique_calendar_years from structure analysis. SELECT COUNT(DISTINCT financial_year) FROM unified_finance.Dim_Date; -- Should match unique_financial_years. SELECT MIN(fiscal_week_id), MAX(fiscal_week_id) FROM unified_finance.Dim_Date; -- Should match earliest_fiscal_week_id, latest_fiscal_week_id.",Revert to previous dashboard versions and data sources. Drop the new `Dim_Date` table and associated foreign keys.,Use the 'earliest_financial_period' (2023-10) and 'latest_financial_period' (2026-1) from `programmatic_fin_month` to ensure the date range is fully covered and correctly mapped. Verify that 'unique_financial_periods' (28) are correctly represented.,All calendar and financial periods from 2023-10 to 2026-01 should be present and correctly attributed. Date ranges should align with 'earliest_date' and 'latest_date' from original analysis.,"Business users can filter reports by any calendar or financial period (e.g., FY2025 Q1, Calendar Month Jan 2024, Fiscal Week 28) and see correct, consistent data. Reports grouped by financial month/quarter/year match existing reports.",29,a8fe6bb0-3cbf-4d6e-8838-fa6e6dce447f
+Consolidate_Revenue_Metrics,"Multiple gross revenue columns (e.g., total_gross_revenue_amount, cy_gross_revenue_amount, ly_gross_revenue_amount, current_fy_gross_revenue, previous_fy_gross_revenue, total_revenue_gross, programmatic_gross_revenue_oct_foxtel_pluto) and spend columns (total_spend_ty, total_spend_ly).","A single `Gross_Revenue_Amount` column and a single `Total_Spend_Amount` column in `Fact_Advertising_Pacing`, with contextual dimensions (e.g., `relative_fy_year_offset`, `source_system_name`, `revenue_type_derived`).",formula_change,"INSERT INTO unified_finance.Fact_Advertising_Pacing (date_key, advertiser_key, ..., Gross_Revenue_Amount, Total_Spend_Amount) SELECT d.date_key, a.advertiser_key, ..., COALESCE(src.total_gross_revenue_amount, src.current_fy_gross_revenue, ...) AS Gross_Revenue_Amount, COALESCE(src.total_spend_ty, src.total_spend_ly, ...) AS Total_Spend_Amount FROM (SELECT * FROM programmatic_cal_month UNION ALL SELECT * FROM programmatic_fin_month) src JOIN unified_finance.Dim_Date d ON src.date_dim = d.calendar_date JOIN unified_finance.Dim_Advertiser a ON src.Advertiser = a.advertiser_name; -- Simplified, actual SQL would handle specific revenue types and offsets.",SELECT SUM(Gross_Revenue_Amount) FROM unified_finance.Fact_Advertising_Pacing WHERE financial_year = 2025; -- Compare with original gross_revenue_by_transaction_status_fy2025. SELECT SUM(Total_Spend_Amount) FROM unified_finance.Fact_Advertising_Pacing WHERE relative_fy_year_offset = 0; -- Compare with original total_spend_ty. Run 'gross_revenue_positive_test' and 'spend_positive_test' on new metrics.,Revert to previous dashboard versions and data sources. Rollback `Fact_Advertising_Pacing` to previous state.,Use sample data from `primary_analysis_sql` for `filter_type` and `distinct_value_count` to ensure filters on consolidated metrics yield correct counts. Verify that all original gross revenue and spend values are accurately represented in the new consolidated fields.,Gross revenue and spend values should remain positive and within expected ranges. Aggregated totals for specific periods/dimensions should match original dashboard values.,"Key financial stakeholders confirm that total gross revenue and spend figures for specific fiscal years, quarters, and months match existing official reports. Drill-downs by advertiser, source, and product also align with expectations.",29,a8fe6bb0-3cbf-4d6e-8838-fa6e6dce447f
+Gross Earnings Calculation Standardisation,SUM(salaries_wages_data.gross_amount) where gross_amount is a direct column from the raw table.,"SUM(fact_payroll_transactions.amount) filtered by dim_payroll_component.component_category = 'EARNINGS' AND dim_payroll_component.is_taxable = TRUE, joined with dim_employee and dim_time.",formula_change|source_change|business_rule_change,"SELECT
+  t.employee_key,
+  t.transaction_date,
+  SUM(t.amount) AS gross_earnings_amount
+FROM
+  `unified_finance.core.fact_payroll_transactions` t
+JOIN
+  `unified_finance.core.dim_payroll_component` pc ON t.payroll_component_key = pc.payroll_component_key
+WHERE
+  pc.component_category = 'EARNINGS' AND pc.is_taxable = TRUE
+GROUP BY
+  1, 2","SELECT
+  FORMAT_DATE('%Y-%m', transaction_date) AS month,
+  SUM(gross_earnings_amount) AS total_gross_earnings
+FROM
+  (
+    -- SQL Transformation above
+  ) AS transformed_data
+GROUP BY
+  1
+ORDER BY
+  1;",Revert the Looker Studio dashboard's data source and metric definitions to point back to the original 'project_uat.finance_raw.salaries_wages_data_2023' table and its associated calculations. Archive or disable the new unified views.,"N/A - No actual data. Hypothetically, a sample of 50-100 employees covering different pay types (salaried, hourly, commission-based) and pay periods (weekly, bi-weekly, monthly) for the last 3-6 months. This would include edge cases like new hires, terminations, and employees with significant variable pay.","N/A - No actual data. Hypothetically, the total 'Standardized Gross Earnings' for any given period should reconcile within +/- 0.05% of the official gross pay reported by the primary payroll system. Individual employee gross pay should match exactly.",Finance and Payroll teams confirm that: 1. Total gross pay figures align with their internal reports for selected periods. 2. Gross pay for a sample of individual employees matches their pay stubs. 3. The definition of 'Gross Earnings' in the new dashboard aligns with current accounting and tax policies.,30,f7a9efeb-df3c-45c9-899d-0bcada701572

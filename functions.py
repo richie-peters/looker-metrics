@@ -575,38 +575,6 @@ def run_gemini_batch_fast_slick(
         print("❌ Batch job failed or timed out")
         return None
 
-# Data Processing Utilities
-def prepare_looker_analysis_batch(df):
-    """Convert dataframe to batch input format with structured Looker analysis prompt."""
-    batch_data = []
-    
-    for dashboard_id, group in df.groupby('looker_studio_report_id'):
-        dashboard_data = {
-            "dashboard_id": dashboard_id,
-            "dashboard_name": group.iloc[0]['looker_studio_report_name'],
-            "dashboard_owner": group.iloc[0]['assetOwner'],
-            "sql_samples": []
-        }
-        
-        for _, row in group.iterrows():
-            dashboard_data["sql_samples"].append({
-                "job_id": row['jobId'],
-                "username": row['username'],
-                "runtime_seconds": row['runtime_seconds'],
-                "total_processed_bytes": row['totalProcessedBytes'],
-                "sql_query": row['query_text']
-            })
-        
-        # Format the structured prompt for this dashboard
-        formatted_prompt = LOOKER_ANALYSIS_PROMPT.format(
-            dashboard_id=dashboard_data["dashboard_id"],
-            dashboard_name=dashboard_data["dashboard_name"],
-            sql_samples=json.dumps(dashboard_data["sql_samples"], indent=2)
-        )
-        
-        batch_data.append({"content": formatted_prompt})
-    
-    return batch_data
 
 def convert_batch_results_to_dataset(results):
     """Convert batch prediction results to structured dataset - Updated for Standardised Structure"""
@@ -1759,3 +1727,794 @@ def create_metric_description(metric, dashboard):
     
     return '. '.join(parts) + '.'
 
+def prepare_secondary_batch_input_clean(unified_dataset, df_bq_results):
+    """
+    Clean version - only use dashboard summary records
+    """
+    import json
+    
+    print("📊 PREPARING SECONDARY BATCH INPUT (CLEAN VERSION)")
+    print("=" * 55)
+    
+    # Filter to only dashboard summary records and remove NaN columns
+    dashboard_summaries = unified_dataset[
+        unified_dataset['record_type'] == 'dashboard_summary'
+    ].dropna(axis=1, how='all')
+    
+    print(f"Processing {len(dashboard_summaries)} dashboard summaries")
+    
+    secondary_batch_data = []
+    
+    # Get the combined BQ results
+    combined_results = df_bq_results.get('combined_results', {})
+    
+    for _, dashboard in dashboard_summaries.iterrows():
+        dashboard_id = dashboard['dashboard_id']
+        
+        print(f"  Processing: {dashboard.get('dashboard_name', 'Unknown')[:50]}...")
+        
+        # Get original analysis data - only use non-NaN values
+        original_analysis = {}
+        for key in ['dashboard_name', 'business_domain', 'complexity_score', 'consolidation_score', 
+                   'total_metrics_count', 'primary_data_sources', 'date_grain', 'data_grain',
+                   'kpi_metrics_count', 'governance_issues_count']:
+            value = dashboard.get(key)
+            if pd.notna(value):
+                original_analysis[key] = value
+        
+        original_analysis['dashboard_id'] = dashboard_id
+        
+        # Get actual SQL results for this dashboard
+        actual_results = {}
+        
+        for query_type in ['primary_analysis_sql', 'structure_sql', 'validation_sql', 'business_rules_sql']:
+            if query_type in combined_results and combined_results[query_type] is not None:
+                dashboard_data = combined_results[query_type][
+                    combined_results[query_type]['dashboard_id'] == dashboard_id
+                ]
+                
+                if not dashboard_data.empty:
+                    # Convert to JSON-serializable format
+                    actual_results[query_type] = {
+                        'row_count': len(dashboard_data),
+                        'columns': [col for col in dashboard_data.columns if col not in ['dashboard_id', 'response_id', 'query_type']],
+                        'sample_data': dashboard_data.head(3).to_dict('records'),
+                        'data_summary': f"Dataset contains {len(dashboard_data)} rows with {len(dashboard_data.columns)} columns"
+                    }
+                else:
+                    actual_results[query_type] = {'row_count': 0, 'message': 'No data returned'}
+            else:
+                actual_results[query_type] = {'message': 'Query not executed or failed'}
+        
+        # Get related metrics for this dashboard from the unified dataset
+        dashboard_metrics = unified_dataset[
+            (unified_dataset['dashboard_id'] == dashboard_id) & 
+            (unified_dataset['record_type'] == 'metric')
+        ]
+        
+        metrics_info = []
+        for _, metric in dashboard_metrics.iterrows():
+            metric_dict = {}
+            for key in ['metric_id', 'metric_name', 'metric_type', 'business_description', 
+                       'sql_logic', 'is_kpi', 'calculation_type', 'metric_category']:
+                value = metric.get(key)
+                if pd.notna(value):
+                    metric_dict[key] = value
+            if metric_dict:  # Only add if we have some data
+                metrics_info.append(metric_dict)
+        
+        # Create the input data structure
+        secondary_input_data = {
+            'dashboard_id': dashboard_id,
+            'dashboard_name': dashboard.get('dashboard_name', ''),
+            'original_dashboard_analysis': original_analysis,
+            'dashboard_metrics': metrics_info,
+            'actual_sql_results': actual_results
+        }
+        
+        # Get the secondary prompt
+        secondary_prompt = design_secondary_analysis_prompt()
+        
+        # Format the prompt with the data
+        try:
+            formatted_prompt = secondary_prompt.format(
+                dashboard_id=dashboard_id,
+                dashboard_name=dashboard.get('dashboard_name', ''),
+                original_dashboard_analysis=json.dumps(original_analysis, indent=2),
+                actual_sql_results=json.dumps(actual_results, indent=2),
+                primary_analysis_data=json.dumps(actual_results.get('primary_analysis_sql', {}), indent=2),
+                structure_analysis_data=json.dumps(actual_results.get('structure_sql', {}), indent=2),
+                validation_results=json.dumps(actual_results.get('validation_sql', {}), indent=2),
+                business_rules_data=json.dumps(actual_results.get('business_rules_sql', {}), indent=2)
+            )
+            
+            secondary_batch_data.append({
+                'content': formatted_prompt,
+                'dashboard_id': dashboard_id,
+                'dashboard_name': dashboard.get('dashboard_name', '')
+            })
+            
+        except Exception as e:
+            print(f"    ⚠️ Error formatting prompt for {dashboard_id}: {e}")
+            continue
+    
+    print(f"✅ Successfully prepared {len(secondary_batch_data)} secondary analysis requests")
+    return secondary_batch_data
+
+
+def design_secondary_analysis_prompt():
+    """
+    Design the secondary analysis prompt that leverages actual SQL results
+    for consolidation planning and migration preparation
+    """
+    
+    secondary_prompt = """
+    SECONDARY LOOKER CONSOLIDATION ANALYSIS
+    =====================================
+    
+    You are an expert data architect analyzing Looker Studio dashboards for a finance systems consolidation project.
+    You now have ACTUAL DATA RESULTS from BigQuery queries, not just SQL analysis.
+    
+    INPUT DATA:
+    - Dashboard ID: {dashboard_id}
+    - Dashboard Name: {dashboard_name}
+    - Original Analysis: {original_dashboard_analysis}
+    - SQL Execution Results: {actual_sql_results}
+    - Primary Analysis Data: {primary_analysis_data}
+    - Structure Analysis Data: {structure_analysis_data}
+    - Validation Results: {validation_results}
+    - Business Rules Data: {business_rules_data}
+    
+    CONSOLIDATION OBJECTIVES:
+    1. **METRIC CONSOLIDATION**: Identify duplicate/similar metrics across dashboards
+    2. **DATA SOURCE UNIFICATION**: Map to consolidated finance data model
+    3. **TRANSFORMATION MAPPING**: Create specific transformation rules
+    4. **TESTING STRATEGY**: Design validation approaches for migration
+    5. **RELATIONSHIP MODELING**: Design new unified data relationships
+    6. **MIGRATION PLANNING**: Create step-by-step migration approach
+    
+    OUTPUT REQUIREMENTS (JSON):
+    {{
+      "consolidation_analysis": {{
+        "dashboard_id": "string",
+        "dashboard_name": "string",
+        "consolidation_priority": "high|medium|low",
+        "migration_complexity": 1-10,
+        "data_quality_score": 1-10,
+        "consolidation_readiness": "ready|needs_prep|major_rework",
+        "estimated_migration_effort_days": number,
+        "business_impact_risk": "high|medium|low",
+        "dependencies": ["dashboard_id1", "dashboard_id2"],
+        "consolidation_opportunities_count": number
+      }},
+      
+      "metrics_consolidation": [
+        {{
+          "current_metric_name": "string",
+          "current_calculation": "string",
+          "data_sample_analysis": "what the actual data tells us about this metric",
+          "consolidation_target_metric": "proposed unified metric name",
+          "consolidation_rationale": "why these should be consolidated",
+          "transformation_rule": "specific transformation logic needed",
+          "data_validation_rule": "how to test this transformation",
+          "business_impact": "high|medium|low",
+          "migration_order": number,
+          "similar_metrics_across_dashboards": ["metric references from other dashboards"],
+          "unified_definition": "standardised business definition",
+          "sample_values_analysis": "insights from actual data values",
+          "data_quality_issues": ["specific issues found in data"],
+          "proposed_new_calculation": "new standardised calculation method"
+        }}
+      ],
+      
+      "data_source_mapping": [
+        {{
+          "current_source": "project.dataset.table",
+          "current_usage": "how this source is used",
+          "data_sample_insights": "what the actual data structure reveals", 
+          "consolidation_target": "proposed new unified table/view",
+          "mapping_complexity": 1-10,
+          "transformation_type": "direct_map|calculation_required|major_restructure",
+          "key_fields_mapping": {{"old_field": "new_field"}},
+          "data_quality_concerns": ["issues found in actual data"],
+          "migration_prerequisites": ["steps needed before migration"],
+          "testing_approach": "how to validate this mapping"
+        }}
+      ],
+      
+      "relationship_model": {{
+        "current_relationships": ["how data currently connects"],
+        "proposed_unified_model": "description of new consolidated model",
+        "key_entities": ["primary business objects"],
+        "relationship_changes": ["what relationships need to change"],
+        "consolidation_benefits": ["benefits of new model"],
+        "implementation_challenges": ["challenges to address"],
+        "data_lineage_impact": "how this affects data flow"
+      }},
+      
+      "transformation_specifications": [
+        {{
+          "transformation_name": "string", 
+          "source_logic": "current calculation/logic",
+          "target_logic": "new unified logic",
+          "transformation_type": "formula_change|aggregation_change|source_change|business_rule_change",
+          "sql_transformation": "specific SQL to perform transformation",
+          "validation_sql": "SQL to validate transformation worked correctly",
+          "rollback_plan": "how to reverse if issues found",
+          "testing_data_sample": "sample data to test with",
+          "expected_result_range": "expected output values/ranges",
+          "business_validation_criteria": "how business users validate correctness"
+        }}
+      ],
+      
+      "migration_plan": {{
+        "migration_wave": 1-5,
+        "migration_order_within_wave": number,
+        "prerequisites": ["what must be done first"],
+        "migration_steps": ["specific step-by-step actions"],
+        "testing_phases": ["validation checkpoints"],
+        "rollback_triggers": ["conditions that require rollback"],
+        "business_validation_required": ["stakeholder sign-offs needed"],
+        "go_live_criteria": ["requirements for production deployment"],
+        "post_migration_monitoring": ["what to monitor after migration"]
+      }},
+      
+      "english_summaries": {{
+        "dashboard_plain_english": "Simple description of what this dashboard does for business users",
+        "consolidation_story": "Plain English explanation of how this fits into consolidation",
+        "business_impact_summary": "What happens to users during migration",
+        "key_changes_summary": "Main changes users will see",
+        "benefits_summary": "Benefits users will gain from consolidation",
+        "migration_timeline_summary": "When changes will happen"
+      }},
+      
+      "quality_assessment": {{
+        "data_completeness_score": 1-10,
+        "data_accuracy_issues": ["problems found in actual data"],
+        "calculation_validation_results": ["whether calculations work correctly"],
+        "business_logic_issues": ["problems with business rules"],
+        "performance_concerns": ["query performance issues"],
+        "scalability_issues": ["problems with data volume"],
+        "recommendations": ["specific improvements needed"]
+      }}
+    }}
+    
+    ANALYSIS REQUIREMENTS USING ACTUAL DATA:
+    
+    1. **DATA-DRIVEN METRIC ANALYSIS**:
+       - Use actual data samples to understand metric behavior
+       - Identify metrics that produce similar results (potential duplicates)
+       - Analyze data distributions to understand business patterns
+       - Find calculation inconsistencies by comparing results
+    
+    2. **CONSOLIDATION OPPORTUNITY DETECTION**:
+       - Compare metrics across dashboards using actual values
+       - Identify business logic that can be standardised
+       - Find data sources that can be unified
+       - Detect redundant calculations
+    
+    3. **TRANSFORMATION DESIGN**:
+       - Create specific transformation rules based on actual data patterns
+       - Design validation queries using real data ranges
+       - Identify edge cases from actual data samples
+       - Plan for data quality improvements
+    
+    4. **MIGRATION PLANNING**:
+       - Sequence migrations based on data dependencies
+       - Design testing using actual data samples
+       - Plan rollback strategies with real scenarios
+       - Create business validation criteria
+    
+    5. **PLAIN ENGLISH DOCUMENTATION**:
+       - Explain dashboards in business terms
+       - Describe consolidation benefits clearly
+       - Create user-friendly migration communications
+       - Write simple testing instructions
+    
+    CRITICAL ANALYSIS POINTS:
+    
+    - Use ACTUAL DATA VALUES to inform consolidation decisions
+    - Focus on BUSINESS IMPACT and user experience
+    - Design TESTABLE transformation rules
+    - Create ACTIONABLE migration plans
+    - Prioritise based on REAL DATA COMPLEXITY and BUSINESS VALUE
+    - Consider DATA QUALITY issues found in actual results
+    - Plan for CHANGE MANAGEMENT and user adoption
+    
+    SAMPLE DATA ANALYSIS APPROACH:
+    - Compare metric results across similar dashboards
+    - Identify data patterns that indicate consolidation opportunities  
+    - Use actual value ranges to design validation rules
+    - Analyze data quality issues for migration planning
+    - Design transformation logic based on real data behavior
+    
+    OUTPUT FOCUS:
+    Create actionable consolidation guidance that can be directly used for:
+    1. Building unified data models
+    2. Writing transformation code
+    3. Designing test cases
+    4. Planning user migration
+    5. Communicating changes to stakeholders
+    """
+    
+    return secondary_prompt
+
+
+def prepare_secondary_batch_input_robust(unified_dataset, df_bq_results):
+    """
+    Robust version - handles dates, NaNs, and missing data gracefully
+    """
+    import json
+    import pandas as pd
+    from datetime import date, datetime
+    import numpy as np
+    
+    print("📊 PREPARING SECONDARY BATCH INPUT (ROBUST VERSION)")
+    print("=" * 55)
+    
+    def clean_for_json(obj):
+        """Clean data for JSON serialization"""
+        if pd. isna(obj) or obj is None:
+            return None
+        elif isinstance(obj, (date, datetime)):
+            return obj.strftime('%Y-%m-%d') if hasattr(obj, 'strftime') else str(obj)
+        elif isinstance(obj, (np.integer, np.floating)):
+            return float(obj) if not pd.isna(obj) else None
+        elif isinstance(obj, dict):
+            return {k: clean_for_json(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [clean_for_json(item) for item in obj]
+        else:
+            return obj
+    
+    # Filter to dashboard summaries only
+    dashboard_summaries = unified_dataset[
+        unified_dataset['record_type'] == 'dashboard_summary'
+    ]
+    
+    print(f"Processing {len(dashboard_summaries)} dashboard summaries")
+    
+    secondary_batch_data = []
+    combined_results = df_bq_results.get('combined_results', {})
+    
+    for _, dashboard in dashboard_summaries.iterrows():
+        dashboard_id = dashboard['dashboard_id']
+        dashboard_name = dashboard.get('dashboard_name', 'Unknown Dashboard')
+        
+        print(f"  Processing: {dashboard_name[:50]}...")
+        
+        try:
+            # Create original analysis with cleaned data
+            original_analysis = {
+                'dashboard_id': dashboard_id,
+                'dashboard_name': clean_for_json(dashboard.get('dashboard_name')),
+                'business_domain': clean_for_json(dashboard.get('business_domain')),
+                'complexity_score': clean_for_json(dashboard.get('complexity_score')),
+                'consolidation_score': clean_for_json(dashboard.get('consolidation_score')),
+                'total_metrics_count': clean_for_json(dashboard.get('total_metrics_count')),
+                'kpi_metrics_count': clean_for_json(dashboard.get('kpi_metrics_count')),
+                'data_grain': clean_for_json(dashboard.get('data_grain')),
+                'date_grain': clean_for_json(dashboard.get('date_grain')),
+                'governance_issues_count': clean_for_json(dashboard.get('governance_issues_count'))
+            }
+            
+            # Remove None values
+            original_analysis = {k: v for k, v in original_analysis.items() if v is not None}
+            
+            # Get SQL results - proceed even if some are missing
+            actual_results = {}
+            
+            for query_type in ['primary_analysis_sql', 'structure_sql', 'validation_sql', 'business_rules_sql']:
+                try:
+                    if query_type in combined_results and combined_results[query_type] is not None:
+                        dashboard_data = combined_results[query_type][
+                            combined_results[query_type]['dashboard_id'] == dashboard_id
+                        ]
+                        
+                        if not dashboard_data.empty:
+                            # Get a small sample and clean it
+                            sample_data = dashboard_data.head(3).copy()
+                            
+                            # Clean sample data for JSON serialization
+                            cleaned_sample = []
+                            for _, row in sample_data.iterrows():
+                                cleaned_row = {}
+                                for col, val in row.items():
+                                    if col not in ['dashboard_id', 'response_id', 'query_type']:
+                                        cleaned_val = clean_for_json(val)
+                                        if cleaned_val is not None:
+                                            cleaned_row[col] = cleaned_val
+                                if cleaned_row:  # Only add if we have some data
+                                    cleaned_sample.append(cleaned_row)
+                            
+                            actual_results[query_type] = {
+                                'status': 'success',
+                                'row_count': len(dashboard_data),
+                                'columns': [col for col in dashboard_data.columns 
+                                          if col not in ['dashboard_id', 'response_id', 'query_type']],
+                                'sample_data': cleaned_sample[:2],  # Just 2 rows to keep prompt manageable
+                                'data_summary': f"Contains {len(dashboard_data)} rows with business data"
+                            }
+                        else:
+                            actual_results[query_type] = {
+                                'status': 'no_data',
+                                'message': 'Query executed but returned no rows for this dashboard'
+                            }
+                    else:
+                        actual_results[query_type] = {
+                            'status': 'not_available',
+                            'message': 'Query not executed or failed - will analyse based on available data'
+                        }
+                except Exception as e:
+                    actual_results[query_type] = {
+                        'status': 'error',
+                        'message': f'Error processing query results: {str(e)[:100]}'
+                    }
+            
+            # Get metrics for this dashboard
+            dashboard_metrics = unified_dataset[
+                (unified_dataset['dashboard_id'] == dashboard_id) & 
+                (unified_dataset['record_type'] == 'metric')
+            ]
+            
+            metrics_info = []
+            for _, metric in dashboard_metrics.iterrows():
+                metric_dict = {}
+                for key in ['metric_id', 'metric_name', 'metric_type', 'business_description', 
+                           'is_kpi', 'calculation_type', 'metric_category']:
+                    value = clean_for_json(metric.get(key))
+                    if value is not None:
+                        metric_dict[key] = value
+                
+                if len(metric_dict) > 2:  # Only include if we have meaningful data
+                    metrics_info.append(metric_dict)
+            
+            # Create the complete input structure
+            secondary_input = {
+                'dashboard_id': dashboard_id,
+                'dashboard_name': dashboard_name,
+                'original_dashboard_analysis': original_analysis,
+                'dashboard_metrics': metrics_info,
+                'actual_sql_results': actual_results,
+                'data_availability': {
+                    'has_primary_analysis': actual_results.get('primary_analysis_sql', {}).get('status') == 'success',
+                    'has_structure_analysis': actual_results.get('structure_sql', {}).get('status') == 'success',
+                    'has_validation_results': actual_results.get('validation_sql', {}).get('status') == 'success',
+                    'has_business_rules': actual_results.get('business_rules_sql', {}).get('status') == 'success',
+                    'metrics_count': len(metrics_info)
+                }
+            }
+            
+            # Get the secondary prompt
+            secondary_prompt = design_secondary_analysis_prompt()
+            
+            # Format the prompt - this should work now with cleaned data
+            formatted_prompt = secondary_prompt.format(
+                dashboard_id=dashboard_id,
+                dashboard_name=dashboard_name,
+                original_dashboard_analysis=json.dumps(original_analysis, indent=2),
+                actual_sql_results=json.dumps(actual_results, indent=2),
+                primary_analysis_data=json.dumps(actual_results.get('primary_analysis_sql', {}), indent=2),
+                structure_analysis_data=json.dumps(actual_results.get('structure_sql', {}), indent=2),
+                validation_results=json.dumps(actual_results.get('validation_sql', {}), indent=2),
+                business_rules_data=json.dumps(actual_results.get('business_rules_sql', {}), indent=2)
+            )
+            
+            secondary_batch_data.append({
+                'content': formatted_prompt,
+                'dashboard_id': dashboard_id,
+                'dashboard_name': dashboard_name,
+                'data_quality': secondary_input['data_availability']
+            })
+            
+            print(f"    ✅ Successfully prepared request")
+            
+        except Exception as e:
+            print(f"    ⚠️ Error preparing {dashboard_id}: {str(e)[:100]}")
+            continue
+    
+    print(f"\n✅ Successfully prepared {len(secondary_batch_data)} secondary analysis requests")
+    
+    # Show data quality summary
+    if secondary_batch_data:
+        print(f"\n📊 DATA QUALITY SUMMARY:")
+        total_with_primary = sum(1 for req in secondary_batch_data if req['data_quality']['has_primary_analysis'])
+        total_with_structure = sum(1 for req in secondary_batch_data if req['data_quality']['has_structure_analysis'])
+        total_with_validation = sum(1 for req in secondary_batch_data if req['data_quality']['has_validation_results'])
+        
+        print(f"  Requests with primary analysis data: {total_with_primary}/{len(secondary_batch_data)}")
+        print(f"  Requests with structure analysis data: {total_with_structure}/{len(secondary_batch_data)}")
+        print(f"  Requests with validation data: {total_with_validation}/{len(secondary_batch_data)}")
+        print(f"  Average metrics per dashboard: {sum(req['data_quality']['metrics_count'] for req in secondary_batch_data) / len(secondary_batch_data):.1f}")
+    
+    return secondary_batch_data
+
+
+def extract_secondary_results_to_datasets(secondary_results):
+    """
+    Extract secondary analysis results into structured datasets
+    
+    Args:
+        secondary_results: The results from your secondary batch analysis
+        
+    Returns:
+        dict: Dictionary containing multiple DataFrames for different aspects
+    """
+    import pandas as pd
+    import json
+    
+    print("🔍 EXTRACTING SECONDARY ANALYSIS RESULTS")
+    print("=" * 50)
+    
+    # Extract responses from batch results
+    responses = []
+    for i, result in enumerate(secondary_results):
+        try:
+            if 'response' in result and 'candidates' in result['response']:
+                candidates = result['response']['candidates']
+                if candidates and len(candidates) > 0:
+                    candidate = candidates[0]
+                    if 'content' in candidate and 'parts' in candidate['content']:
+                        parts = candidate['content']['parts']
+                        if parts and len(parts) > 0:
+                            response_text = parts[0]['text']
+                            responses.append({
+                                'raw_response': response_text,
+                                'status': 'success',
+                                'response_id': i
+                            })
+                        else:
+                            print(f"No parts found in response {i}")
+                    else:
+                        print(f"No content/parts in response {i}")
+                else:
+                    print(f"No candidates in response {i}")
+            else:
+                print(f"No response/candidates in result {i}")
+        except Exception as e:
+            print(f"Error processing result {i}: {e}")
+            responses.append({
+                'raw_response': str(result),
+                'status': 'error',
+                'response_id': i
+            })
+    
+    print(f"Extracted {len(responses)} responses")
+    
+    # Initialize datasets
+    consolidation_analysis_data = []
+    metrics_consolidation_data = []
+    data_source_mapping_data = []
+    relationship_model_data = []
+    transformation_specs_data = []
+    migration_plan_data = []
+    english_summaries_data = []
+    quality_assessment_data = []
+    
+    # Process each response
+    for response in responses:
+        try:
+            response_text = response['raw_response']
+            
+            # Extract JSON from markdown code blocks
+            if '```json' in response_text:
+                json_start = response_text.find('```json') + 7
+                json_end = response_text.find('```', json_start)
+                json_text = response_text[json_start:json_end].strip()
+            elif '{' in response_text and '}' in response_text:
+                json_start = response_text.find('{')
+                json_end = response_text.rfind('}') + 1
+                json_text = response_text[json_start:json_end]
+            else:
+                print(f"No JSON found in response {response['response_id']}")
+                continue
+            
+            # Parse JSON
+            parsed_response = json.loads(json_text)
+            response_id = response['response_id']
+            
+            # Extract consolidation_analysis
+            if 'consolidation_analysis' in parsed_response:
+                analysis = parsed_response['consolidation_analysis'].copy()
+                analysis['response_id'] = response_id
+                consolidation_analysis_data.append(analysis)
+            
+            # Extract metrics_consolidation (array)
+            if 'metrics_consolidation' in parsed_response:
+                for metric in parsed_response['metrics_consolidation']:
+                    metric_row = metric.copy()
+                    metric_row['response_id'] = response_id
+                    metric_row['dashboard_id'] = parsed_response.get('consolidation_analysis', {}).get('dashboard_id', '')
+                    
+                    # Process arrays in metrics consolidation
+                    if 'similar_metrics_across_dashboards' in metric_row:
+                        metric_row['similar_metrics_count'] = len(metric_row['similar_metrics_across_dashboards']) if metric_row['similar_metrics_across_dashboards'] else 0
+                        metric_row['similar_metrics_text'] = ', '.join(metric_row['similar_metrics_across_dashboards']) if metric_row['similar_metrics_across_dashboards'] else ''
+                    
+                    if 'data_quality_issues' in metric_row:
+                        metric_row['data_quality_issues_count'] = len(metric_row['data_quality_issues']) if metric_row['data_quality_issues'] else 0
+                        metric_row['data_quality_issues_text'] = ', '.join(metric_row['data_quality_issues']) if metric_row['data_quality_issues'] else ''
+                    
+                    metrics_consolidation_data.append(metric_row)
+            
+            # Extract data_source_mapping (array)
+            if 'data_source_mapping' in parsed_response:
+                for mapping in parsed_response['data_source_mapping']:
+                    mapping_row = mapping.copy()
+                    mapping_row['response_id'] = response_id
+                    mapping_row['dashboard_id'] = parsed_response.get('consolidation_analysis', {}).get('dashboard_id', '')
+                    
+                    # Process arrays in data source mapping
+                    if 'data_quality_concerns' in mapping_row:
+                        mapping_row['data_quality_concerns_count'] = len(mapping_row['data_quality_concerns']) if mapping_row['data_quality_concerns'] else 0
+                        mapping_row['data_quality_concerns_text'] = ', '.join(mapping_row['data_quality_concerns']) if mapping_row['data_quality_concerns'] else ''
+                    
+                    if 'migration_prerequisites' in mapping_row:
+                        mapping_row['migration_prerequisites_count'] = len(mapping_row['migration_prerequisites']) if mapping_row['migration_prerequisites'] else 0
+                        mapping_row['migration_prerequisites_text'] = ', '.join(mapping_row['migration_prerequisites']) if mapping_row['migration_prerequisites'] else ''
+                    
+                    # Convert key_fields_mapping dict to string
+                    if 'key_fields_mapping' in mapping_row and isinstance(mapping_row['key_fields_mapping'], dict):
+                        mapping_row['key_fields_mapping_text'] = ', '.join([f"{k}->{v}" for k, v in mapping_row['key_fields_mapping'].items()])
+                    
+                    data_source_mapping_data.append(mapping_row)
+            
+            # Extract relationship_model
+            if 'relationship_model' in parsed_response:
+                model = parsed_response['relationship_model'].copy()
+                model['response_id'] = response_id
+                model['dashboard_id'] = parsed_response.get('consolidation_analysis', {}).get('dashboard_id', '')
+                
+                # Process arrays in relationship model
+                for array_field in ['current_relationships', 'key_entities', 'relationship_changes', 'consolidation_benefits', 'implementation_challenges']:
+                    if array_field in model:
+                        model[f'{array_field}_count'] = len(model[array_field]) if model[array_field] else 0
+                        model[f'{array_field}_text'] = ', '.join(model[array_field]) if model[array_field] else ''
+                
+                relationship_model_data.append(model)
+            
+            # Extract transformation_specifications (array)
+            if 'transformation_specifications' in parsed_response:
+                for transform in parsed_response['transformation_specifications']:
+                    transform_row = transform.copy()
+                    transform_row['response_id'] = response_id
+                    transform_row['dashboard_id'] = parsed_response.get('consolidation_analysis', {}).get('dashboard_id', '')
+                    transformation_specs_data.append(transform_row)
+            
+            # Extract migration_plan
+            if 'migration_plan' in parsed_response:
+                plan = parsed_response['migration_plan'].copy()
+                plan['response_id'] = response_id
+                plan['dashboard_id'] = parsed_response.get('consolidation_analysis', {}).get('dashboard_id', '')
+                
+                # Process arrays in migration plan
+                for array_field in ['prerequisites', 'migration_steps', 'testing_phases', 'rollback_triggers', 'business_validation_required', 'go_live_criteria', 'post_migration_monitoring']:
+                    if array_field in plan:
+                        plan[f'{array_field}_count'] = len(plan[array_field]) if plan[array_field] else 0
+                        plan[f'{array_field}_text'] = ', '.join(plan[array_field]) if plan[array_field] else ''
+                
+                migration_plan_data.append(plan)
+            
+            # Extract english_summaries
+            if 'english_summaries' in parsed_response:
+                summary = parsed_response['english_summaries'].copy()
+                summary['response_id'] = response_id
+                summary['dashboard_id'] = parsed_response.get('consolidation_analysis', {}).get('dashboard_id', '')
+                english_summaries_data.append(summary)
+            
+            # Extract quality_assessment
+            if 'quality_assessment' in parsed_response:
+                quality = parsed_response['quality_assessment'].copy()
+                quality['response_id'] = response_id
+                quality['dashboard_id'] = parsed_response.get('consolidation_analysis', {}).get('dashboard_id', '')
+                
+                # Process arrays in quality assessment
+                for array_field in ['data_accuracy_issues', 'calculation_validation_results', 'business_logic_issues', 'performance_concerns', 'scalability_issues', 'recommendations']:
+                    if array_field in quality:
+                        quality[f'{array_field}_count'] = len(quality[array_field]) if quality[array_field] else 0
+                        quality[f'{array_field}_text'] = ', '.join(quality[array_field]) if quality[array_field] else ''
+                
+                quality_assessment_data.append(quality)
+                
+        except json.JSONDecodeError as e:
+            print(f"JSON parsing error for response {response['response_id']}: {e}")
+        except Exception as e:
+            print(f"Error processing response {response['response_id']}: {e}")
+    
+    # Create DataFrames
+    datasets = {
+        'consolidation_analysis': pd.DataFrame(consolidation_analysis_data) if consolidation_analysis_data else pd.DataFrame(),
+        'metrics_consolidation': pd.DataFrame(metrics_consolidation_data) if metrics_consolidation_data else pd.DataFrame(),
+        'data_source_mapping': pd.DataFrame(data_source_mapping_data) if data_source_mapping_data else pd.DataFrame(),
+        'relationship_model': pd.DataFrame(relationship_model_data) if relationship_model_data else pd.DataFrame(),
+        'transformation_specifications': pd.DataFrame(transformation_specs_data) if transformation_specs_data else pd.DataFrame(),
+        'migration_plan': pd.DataFrame(migration_plan_data) if migration_plan_data else pd.DataFrame(),
+        'english_summaries': pd.DataFrame(english_summaries_data) if english_summaries_data else pd.DataFrame(),
+        'quality_assessment': pd.DataFrame(quality_assessment_data) if quality_assessment_data else pd.DataFrame(),
+        'raw_responses': pd.DataFrame(responses)
+    }
+    
+    # Print summary
+    print(f"\n✅ EXTRACTION COMPLETE:")
+    for name, df in datasets.items():
+        if len(df) > 0:
+            print(f"  - {name}: {len(df)} rows, {len(df.columns)} columns")
+        else:
+            print(f"  - {name}: empty dataset")
+    
+    return datasets
+
+# Quick analysis function
+def analyze_secondary_results_summary(secondary_datasets):
+    """Quick analysis of secondary results"""
+    print("\n" + "="*60)
+    print("SECONDARY ANALYSIS RESULTS SUMMARY")
+    print("="*60)
+    
+    # Consolidation analysis summary
+    if 'consolidation_analysis' in secondary_datasets and len(secondary_datasets['consolidation_analysis']) > 0:
+        consolidation_df = secondary_datasets['consolidation_analysis']
+        print(f"\n📊 CONSOLIDATION ANALYSIS: {len(consolidation_df)} dashboards")
+        
+        if 'consolidation_priority' in consolidation_df.columns:
+            print("\nConsolidation Priority:")
+            print(consolidation_df['consolidation_priority'].value_counts())
+        
+        if 'migration_complexity' in consolidation_df.columns:
+            print(f"\nMigration Complexity:")
+            print(f"  Average: {consolidation_df['migration_complexity'].mean():.1f}")
+            print(f"  Range: {consolidation_df['migration_complexity'].min()} - {consolidation_df['migration_complexity'].max()}")
+        
+        if 'consolidation_readiness' in consolidation_df.columns:
+            print("\nConsolidation Readiness:")
+            print(consolidation_df['consolidation_readiness'].value_counts())
+    
+    # Metrics consolidation summary
+    if 'metrics_consolidation' in secondary_datasets and len(secondary_datasets['metrics_consolidation']) > 0:
+        metrics_df = secondary_datasets['metrics_consolidation']
+        print(f"\n📈 METRICS CONSOLIDATION: {len(metrics_df)} consolidation opportunities")
+        
+        if 'business_impact' in metrics_df.columns:
+            print("\nBusiness Impact:")
+            print(metrics_df['business_impact'].value_counts())
+        
+        if 'migration_order' in metrics_df.columns:
+            print(f"\nMigration Order Distribution:")
+            print(metrics_df['migration_order'].value_counts().sort_index())
+    
+    # Data source mapping summary
+    if 'data_source_mapping' in secondary_datasets and len(secondary_datasets['data_source_mapping']) > 0:
+        mapping_df = secondary_datasets['data_source_mapping']
+        print(f"\n🗂️ DATA SOURCE MAPPING: {len(mapping_df)} source mappings")
+        
+        if 'transformation_type' in mapping_df.columns:
+            print("\nTransformation Types:")
+            print(mapping_df['transformation_type'].value_counts())
+        
+        if 'mapping_complexity' in mapping_df.columns:
+            print(f"\nMapping Complexity:")
+            print(f"  Average: {mapping_df['mapping_complexity'].mean():.1f}")
+    
+    print("\n" + "="*60)
+
+# Usage function
+def save_secondary_datasets_to_csv(secondary_datasets, output_folder="./data/secondary/"):
+    """Save secondary analysis datasets to CSV files"""
+    import os
+    
+    try:
+        os.makedirs(output_folder, exist_ok=True)
+        
+        for name, df in secondary_datasets.items():
+            if df is not None and len(df) > 0:
+                output_path = f"{output_folder}secondary_analysis_{name}.csv" 
+                df.to_csv(output_path, index=False)
+                print(f"✓ Saved {name}: {output_path} ({len(df)} rows)")
+            else:
+                print(f"⚠️ Skipped {name}: empty dataset")
+        
+        return True
+        
+    except Exception as e:
+        print(f"✗ Failed to save datasets: {e}")
+        return False

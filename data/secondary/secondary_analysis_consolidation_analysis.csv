@@ -1,0 +1,17 @@
+dashboard_id,dashboard_name,consolidation_priority,migration_complexity,data_quality_score,consolidation_readiness,estimated_migration_effort_days,business_impact_risk,dependencies,consolidation_opportunities_count,response_id
+52c11c9c-052a-4e45-9cda-8fecd87d7964,Team Sales Performance - FY26 (Interim)(with Pluto Reporting Date),high,8,4,major_rework,45,high,[],5,1
+2104a3f5-9424-4087-a928-e67fecae789a,Circulation Performance Dashboard_dev_20250415,high,8,3,major_rework,45,high,[],0,3
+6e8b534b-485a-48dd-842d-13dc6bebb01a,SuperCoach Subscriptions,high,8,3,major_rework,50,high,[],3,4
+4d22b4c2-4bb3-49db-a0c1-4d46d4fba101,Copy of Acquisitions - Extracts,high,9,6,major_rework,50,high,[],4,5
+d3bcf796-2396-4a6f-b0a3-da0b7f299a58,Publisher and Product Performance Dashboard - FY25 v2,medium,6,3,needs_prep,15,medium,[],0,8
+5dae02f0-dc48-418c-bdf9-5e5d2b1d6e26,Optimizing Digital Subscriptions Report,high,9,1,major_rework,25,high,[],0,9
+9269e9c6-1ad0-4415-96c3-aca8a710ba01,Team Sales Performance - FY26 (Interim),high,8,6,needs_prep,50,medium,[],15,12
+80ca81f3-0671-40ef-a0a9-825a1580ca1b,Team Sales Performance,high,3,5,needs_prep,7,high,[],2,15
+a1b901e6-c4fb-44bc-955a-3d7070c15829,Revenue Movement,high,8,5,needs_prep,25,high,[],3,16
+b9dfd2f4-92fa-4f81-a5b1-17de880470f9,Contra Report,high,9,2,major_rework,45,high,[],0,17
+bb49fa78-5abe-4e68-a9c1-8172a832e724,optimization,medium,7,1,needs_prep,15,medium,[],0,18
+b15d856f-e3ce-4991-bf2a-92395390524f,Programmatic Rolling 60 Day Overview_NQ Data,high,7,1,major_rework,20,medium,[],0,20
+3ee20092-1897-49b7-8bcd-4157d5f816eb,AdSales Data for Pacing Report,high,7,7,needs_prep,25,high,[],5,24
+52dd1ac1-19b5-4695-a7e6-632ef7a9dba3,Consumer Finance Landing Page,high,7,6,needs_prep,25,high,[],8,26
+a8fe6bb0-3cbf-4d6e-8838-fa6e6dce447f,Pacing Dashboard,high,8,7,needs_prep,45,high,"['Core Finance Systems', 'Advertising Sales Systems', 'Other revenue/spend dashboards']",5,29
+f7a9efeb-df3c-45c9-899d-0bcada701572,Salaries & Wages Dashboard UAT Version,high,7,5,needs_prep,20,high,[],3,30
