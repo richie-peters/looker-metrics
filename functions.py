@@ -1438,3 +1438,59 @@ print("✅ Auto-git-push functions loaded!")
 print("\n🚀 To get started:")
 print("1. Run: setup_git_auto_push()  # One-time setup")
 print("2. Then use: auto_git_push() or quick_push('your message')")
+
+def fix_github_authentication():
+    """Fix GitHub authentication with Personal Access Token"""
+    
+    # You need to paste your actual token here
+    USERNAME = "richie-peters"
+    TOKEN = input("Paste your GitHub Personal Access Token here: ")  # This will prompt you to enter it
+    
+    if not TOKEN or TOKEN.strip() == "":
+        print("❌ No token provided!")
+        return False
+    
+    # Remove any whitespace
+    TOKEN = TOKEN.strip()
+    
+    # Set the remote URL with token authentication
+    import subprocess
+    
+    repo_url = f"https://{USERNAME}:{TOKEN}@github.com/richie-peters/looker-metrics.git"
+    
+    try:
+        # Update the remote URL
+        result = subprocess.run(
+            f'git remote set-url origin {repo_url}', 
+            shell=True, 
+            capture_output=True, 
+            text=True, 
+            cwd='/content/looker-metrics'
+        )
+        
+        if result.returncode == 0:
+            print("✅ GitHub authentication updated successfully!")
+            
+            # Test the connection
+            test_result = subprocess.run(
+                'git remote -v', 
+                shell=True, 
+                capture_output=True, 
+                text=True, 
+                cwd='/content/looker-metrics'
+            )
+            
+            if "https://" in test_result.stdout:
+                print("✅ Remote URL configured correctly")
+                return True
+            else:
+                print("⚠️ Remote URL might not be set correctly")
+                return False
+        else:
+            print(f"❌ Failed to set remote URL: {result.stderr}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error setting up authentication: {e}")
+        return False
+
