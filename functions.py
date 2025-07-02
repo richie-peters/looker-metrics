@@ -22,6 +22,7 @@ import vertexai
 from vertexai.generative_models import GenerativeModel
 import pandas as pd
 import numpy as np
+from decimal import Decimal
 
 # Looker Analysis Prompt
 LOOKER_ANALYSIS_PROMPT = """
@@ -1655,196 +1656,6 @@ def design_secondary_analysis_prompt():
     """
     return secondary_prompt
 
-def prepare_secondary_batch_input_robust(unified_dataset, df_bq_results):
-    """
-    Robust version - handles dates, NaNs, and missing data gracefully
-    """
-    import json
-    import pandas as pd
-    from datetime import date, datetime
-    import numpy as np
-    
-    print("📊 PREPARING SECONDARY BATCH INPUT (ROBUST VERSION)")
-    print("=" * 55)
-    
-    def clean_for_json(obj):
-        """Clean data for JSON serialization"""
-        if pd. isna(obj) or obj is None:
-            return None
-        elif isinstance(obj, (date, datetime)):
-            return obj.strftime('%Y-%m-%d') if hasattr(obj, 'strftime') else str(obj)
-        elif isinstance(obj, (np.integer, np.floating)):
-            return float(obj) if not pd.isna(obj) else None
-        elif isinstance(obj, dict):
-            return {k: clean_for_json(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [clean_for_json(item) for item in obj]
-        else:
-            return obj
-    
-    # Filter to dashboard summaries only
-    dashboard_summaries = unified_dataset[
-        unified_dataset['record_type'] == 'dashboard_summary'
-    ]
-    
-    print(f"Processing {len(dashboard_summaries)} dashboard summaries")
-    
-    secondary_batch_data = []
-    combined_results = df_bq_results.get('combined_results', {})
-    
-    for _, dashboard in dashboard_summaries.iterrows():
-        dashboard_id = dashboard['dashboard_id']
-        dashboard_name = dashboard.get('dashboard_name', 'Unknown Dashboard')
-        
-        print(f"  Processing: {dashboard_name[:50]}...")
-        
-        try:
-            # Create original analysis with cleaned data
-            original_analysis = {
-                'dashboard_id': dashboard_id,
-                'dashboard_name': clean_for_json(dashboard.get('dashboard_name')),
-                'business_domain': clean_for_json(dashboard.get('business_domain')),
-                'complexity_score': clean_for_json(dashboard.get('complexity_score')),
-                'consolidation_score': clean_for_json(dashboard.get('consolidation_score')),
-                'total_metrics_count': clean_for_json(dashboard.get('total_metrics_count')),
-                'kpi_metrics_count': clean_for_json(dashboard.get('kpi_metrics_count')),
-                'data_grain': clean_for_json(dashboard.get('data_grain')),
-                'date_grain': clean_for_json(dashboard.get('date_grain')),
-                'governance_issues_count': clean_for_json(dashboard.get('governance_issues_count'))
-            }
-            
-            # Remove None values
-            original_analysis = {k: v for k, v in original_analysis.items() if v is not None}
-            
-            # Get SQL results - proceed even if some are missing
-            actual_results = {}
-            
-            for query_type in ['primary_analysis_sql', 'structure_sql', 'validation_sql', 'business_rules_sql']:
-                try:
-                    if query_type in combined_results and combined_results[query_type] is not None:
-                        dashboard_data = combined_results[query_type][
-                            combined_results[query_type]['dashboard_id'] == dashboard_id
-                        ]
-                        
-                        if not dashboard_data.empty:
-                            # Get a small sample and clean it
-                            sample_data = dashboard_data.head(3).copy()
-                            
-                            # Clean sample data for JSON serialization
-                            cleaned_sample = []
-                            for _, row in sample_data.iterrows():
-                                cleaned_row = {}
-                                for col, val in row.items():
-                                    if col not in ['dashboard_id', 'response_id', 'query_type']:
-                                        cleaned_val = clean_for_json(val)
-                                        if cleaned_val is not None:
-                                            cleaned_row[col] = cleaned_val
-                                if cleaned_row:  # Only add if we have some data
-                                    cleaned_sample.append(cleaned_row)
-                            
-                            actual_results[query_type] = {
-                                'status': 'success',
-                                'row_count': len(dashboard_data),
-                                'columns': [col for col in dashboard_data.columns 
-                                          if col not in ['dashboard_id', 'response_id', 'query_type']],
-                                'sample_data': cleaned_sample[:2],  # Just 2 rows to keep prompt manageable
-                                'data_summary': f"Contains {len(dashboard_data)} rows with business data"
-                            }
-                        else:
-                            actual_results[query_type] = {
-                                'status': 'no_data',
-                                'message': 'Query executed but returned no rows for this dashboard'
-                            }
-                    else:
-                        actual_results[query_type] = {
-                            'status': 'not_available',
-                            'message': 'Query not executed or failed - will analyse based on available data'
-                        }
-                except Exception as e:
-                    actual_results[query_type] = {
-                        'status': 'error',
-                        'message': f'Error processing query results: {str(e)[:100]}'
-                    }
-            
-            # Get metrics for this dashboard
-            dashboard_metrics = unified_dataset[
-                (unified_dataset['dashboard_id'] == dashboard_id) & 
-                (unified_dataset['record_type'] == 'metric')
-            ]
-            
-            metrics_info = []
-            for _, metric in dashboard_metrics.iterrows():
-                metric_dict = {}
-                for key in ['metric_id', 'metric_name', 'metric_type', 'business_description', 
-                           'is_kpi', 'calculation_type', 'metric_category']:
-                    value = clean_for_json(metric.get(key))
-                    if value is not None:
-                        metric_dict[key] = value
-                
-                if len(metric_dict) > 2:  # Only include if we have meaningful data
-                    metrics_info.append(metric_dict)
-            
-            # Create the complete input structure
-            secondary_input = {
-                'dashboard_id': dashboard_id,
-                'dashboard_name': dashboard_name,
-                'original_dashboard_analysis': original_analysis,
-                'dashboard_metrics': metrics_info,
-                'actual_sql_results': actual_results,
-                'data_availability': {
-                    'has_primary_analysis': actual_results.get('primary_analysis_sql', {}).get('status') == 'success',
-                    'has_structure_analysis': actual_results.get('structure_sql', {}).get('status') == 'success',
-                    'has_validation_results': actual_results.get('validation_sql', {}).get('status') == 'success',
-                    'has_business_rules': actual_results.get('business_rules_sql', {}).get('status') == 'success',
-                    'metrics_count': len(metrics_info)
-                }
-            }
-            
-            # Get the secondary prompt
-            secondary_prompt = design_secondary_analysis_prompt()
-            
-            # Format the prompt - this should work now with cleaned data
-            formatted_prompt = secondary_prompt.format(
-                dashboard_id=dashboard_id,
-                dashboard_name=dashboard_name,
-                original_dashboard_analysis=json.dumps(original_analysis, indent=2),
-                actual_sql_results=json.dumps(actual_results, indent=2),
-                primary_analysis_data=json.dumps(actual_results.get('primary_analysis_sql', {}), indent=2),
-                structure_analysis_data=json.dumps(actual_results.get('structure_sql', {}), indent=2),
-                validation_results=json.dumps(actual_results.get('validation_sql', {}), indent=2),
-                business_rules_data=json.dumps(actual_results.get('business_rules_sql', {}), indent=2)
-            )
-            
-            secondary_batch_data.append({
-                'content': formatted_prompt,
-                'dashboard_id': dashboard_id,
-                'dashboard_name': dashboard_name,
-                'data_quality': secondary_input['data_availability']
-            })
-            
-            print(f"    ✅ Successfully prepared request")
-            
-        except Exception as e:
-            print(f"    ⚠️ Error preparing {dashboard_id}: {str(e)[:100]}")
-            continue
-    
-    print(f"\n✅ Successfully prepared {len(secondary_batch_data)} secondary analysis requests")
-    
-    # Show data quality summary
-    if secondary_batch_data:
-        print(f"\n📊 DATA QUALITY SUMMARY:")
-        total_with_primary = sum(1 for req in secondary_batch_data if req['data_quality']['has_primary_analysis'])
-        total_with_structure = sum(1 for req in secondary_batch_data if req['data_quality']['has_structure_analysis'])
-        total_with_validation = sum(1 for req in secondary_batch_data if req['data_quality']['has_validation_results'])
-        
-        print(f"  Requests with primary analysis data: {total_with_primary}/{len(secondary_batch_data)}")
-        print(f"  Requests with structure analysis data: {total_with_structure}/{len(secondary_batch_data)}")
-        print(f"  Requests with validation data: {total_with_validation}/{len(secondary_batch_data)}")
-        print(f"  Average metrics per dashboard: {sum(req['data_quality']['metrics_count'] for req in secondary_batch_data) / len(secondary_batch_data):.1f}")
-    
-    return secondary_batch_data
-
-
 def extract_secondary_results_to_datasets(secondary_results):
     """
     Extract secondary analysis results into structured datasets
@@ -2137,31 +1948,26 @@ def save_secondary_datasets_to_csv(secondary_datasets, output_folder="./data/sec
 def create_unified_dataset(datasets):
     """
     Creates a unified dataset from the primary analysis outputs.
-    This function combines dashboard summaries, metrics, and governance issues
-    into a single, analyzable DataFrame, suitable for creating a knowledge base.
+    This version corrects the 'record_type' to align with downstream functions.
     """
     print("🔗 Creating unified dataset from analysis results...")
 
     # Extract the dataframes from the primary output
     dashboards_df = datasets.get('dashboards')
     metrics_df = datasets.get('metrics')
-    # The new governance_issues_df from the updated parsing function
     governance_issues_df = datasets.get('governance_issues')
 
     # --- Pre-computation ---
-    # Calculate governance issue counts per metric for easier joining
     if governance_issues_df is not None and not governance_issues_df.empty:
         metric_issue_counts = governance_issues_df.groupby('metric_id').size().reset_index(name='governance_issues_count')
     else:
         metric_issue_counts = pd.DataFrame(columns=['metric_id', 'governance_issues_count'])
 
-    # Join the issue counts back to the main metrics dataframe
     if metrics_df is not None and not metrics_df.empty:
         metrics_with_counts_df = pd.merge(metrics_df, metric_issue_counts, on='metric_id', how='left')
         metrics_with_counts_df['governance_issues_count'] = metrics_with_counts_df['governance_issues_count'].fillna(0).astype(int)
     else:
         metrics_with_counts_df = pd.DataFrame()
-
 
     # --- Record Assembly ---
     unified_records = []
@@ -2170,27 +1976,26 @@ def create_unified_dataset(datasets):
         print("⚠️ No dashboard data found to create a unified dataset.")
         return pd.DataFrame()
 
-    # Iterate through each dashboard to create a summary record
     for _, dashboard in dashboards_df.iterrows():
         dashboard_id = dashboard['dashboard_id']
 
-        # Get all metrics related to this dashboard
         if not metrics_with_counts_df.empty:
             dashboard_metrics = metrics_with_counts_df[metrics_with_counts_df['dashboard_id'] == dashboard_id]
         else:
             dashboard_metrics = pd.DataFrame()
 
-        # Create a summary text block for the dashboard
         metrics_summary_parts = []
         if not dashboard_metrics.empty:
-            for _, metric in dashboard_metrics.head(5).iterrows(): # Summary of top 5 metrics
+            for _, metric in dashboard_metrics.head(5).iterrows():
                 metrics_summary_parts.append(f"- {metric.get('metric_name', 'Unnamed Metric')}: {metric.get('business_description', 'No description.')}")
         metrics_summary_text = "\n".join(metrics_summary_parts)
 
         # Build the unified record for the dashboard
         dashboard_record = {
             'record_id': f"{dashboard_id}_summary",
-            'record_type': 'dashboard',
+            # --- THIS IS THE FIX ---
+            'record_type': 'dashboard_summary', # Changed from 'dashboard'
+            # ---------------------
             'dashboard_id': dashboard_id,
             'dashboard_name': dashboard.get('dashboard_name'),
             'business_domain': dashboard.get('business_domain'),
@@ -2198,7 +2003,6 @@ def create_unified_dataset(datasets):
             'consolidation_score': dashboard.get('consolidation_score'),
             'total_metrics': len(dashboard_metrics),
             'total_governance_issues': dashboard_metrics['governance_issues_count'].sum(),
-            # This 'full_context' field is ideal for feeding into a RAG system
             'full_context': f"Dashboard '{dashboard.get('dashboard_name')}' is in the {dashboard.get('business_domain')} domain. "
                             f"It has a complexity score of {dashboard.get('complexity_score')} and a consolidation score of {dashboard.get('consolidation_score')}. "
                             f"It contains {len(dashboard_metrics)} metrics in total. Key metrics include:\n{metrics_summary_text}"
@@ -2209,3 +2013,86 @@ def create_unified_dataset(datasets):
     print(f"✅ Unified dataset created successfully with {len(unified_df)} dashboard summary records.")
 
     return unified_df
+
+def prepare_secondary_batch_input_robust(unified_dataset, df_bq_results):
+    """
+    Robust version - now handles decimal.Decimal objects from BigQuery,
+    NaNs, and missing data gracefully during JSON serialization.
+    """
+    print("📊 PREPARING SECONDARY BATCH INPUT (ROBUST VERSION)")
+    print("=" * 55)
+
+    def clean_for_json(obj):
+        """Clean data for JSON serialization"""
+        if isinstance(obj, Decimal):
+            return float(obj)
+        # This line now works because 'date' and 'datetime' are imported
+        if isinstance(obj, (date, datetime)):
+            return obj.isoformat()
+        if pd.isna(obj) or obj is None:
+            return None
+        if isinstance(obj, (np.integer, np.floating)):
+            return float(obj) if not pd.isna(obj) else None
+        if isinstance(obj, dict):
+            return {k: clean_for_json(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [clean_for_json(item) for item in obj]
+        return obj
+
+    dashboard_summaries = unified_dataset[
+        unified_dataset['record_type'] == 'dashboard_summary'
+    ]
+    print(f"Processing {len(dashboard_summaries)} dashboard summaries")
+
+    secondary_batch_data = []
+    combined_results = df_bq_results.get('combined_results', {})
+
+    for _, dashboard in dashboard_summaries.iterrows():
+        dashboard_id = dashboard['dashboard_id']
+        dashboard_name = dashboard.get('dashboard_name', 'Unknown Dashboard')
+
+        print(f"  Processing: {dashboard_name[:50]}...")
+
+        try:
+            original_analysis = {k: v for k, v in dashboard.to_dict().items() if pd.notna(v)}
+
+            actual_results = {}
+            for query_type in ['primary_analysis_sql', 'structure_sql', 'validation_sql', 'business_rules_sql']:
+                if query_type in combined_results and combined_results[query_type] is not None:
+                    dashboard_data = combined_results[query_type][combined_results[query_type]['dashboard_id'] == dashboard_id]
+                    if not dashboard_data.empty:
+                        actual_results[query_type] = {
+                            'status': 'success',
+                            'row_count': len(dashboard_data),
+                            'columns': [col for col in dashboard_data.columns if col not in ['dashboard_id', 'response_id', 'query_type']],
+                            'sample_data': dashboard_data.head(2).to_dict('records')
+                        }
+                    else:
+                        actual_results[query_type] = {'status': 'no_data', 'message': 'Query returned no rows.'}
+                else:
+                    actual_results[query_type] = {'status': 'not_available', 'message': 'Query not executed or failed.'}
+
+            secondary_prompt = design_secondary_analysis_prompt()
+            cleaned_sql_results = clean_for_json(actual_results)
+            cleaned_original_analysis = clean_for_json(original_analysis)
+
+            formatted_prompt = secondary_prompt.format(
+                dashboard_id=dashboard_id,
+                dashboard_name=dashboard_name,
+                original_dashboard_analysis=json.dumps(cleaned_original_analysis, indent=2),
+                actual_sql_results=json.dumps(cleaned_sql_results, indent=2),
+                primary_analysis_data=json.dumps(cleaned_sql_results.get('primary_analysis_sql', {}), indent=2),
+                structure_analysis_data=json.dumps(cleaned_sql_results.get('structure_sql', {}), indent=2),
+                validation_results=json.dumps(cleaned_sql_results.get('validation_sql', {}), indent=2),
+                business_rules_data=json.dumps(cleaned_sql_results.get('business_rules_sql', {}), indent=2)
+            )
+
+            secondary_batch_data.append({'content': formatted_prompt})
+            print(f"    ✅ Successfully prepared request")
+
+        except Exception as e:
+            print(f"    ⚠️ Error preparing {dashboard_id}: {str(e)[:100]}")
+            continue
+
+    print(f"\n✅ Successfully prepared {len(secondary_batch_data)} secondary analysis requests")
+    return secondary_batch_data

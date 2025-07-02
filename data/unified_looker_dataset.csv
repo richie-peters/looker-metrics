@@ -1,256 +1,256 @@
 record_id,record_type,dashboard_id,dashboard_name,business_domain,complexity_score,consolidation_score,total_metrics,total_governance_issues,full_context
-e83da1de-4227-43e6-bcc6-73051c66914b_summary,dashboard,e83da1de-4227-43e6-bcc6-73051c66914b,Ad Events Dashboard,sales,7.0,9.0,28,0,"Dashboard 'Ad Events Dashboard' is in the sales domain. It has a complexity score of 7.0 and a consolidation score of 9.0. It contains 28 metrics in total. Key metrics include:
+e83da1de-4227-43e6-bcc6-73051c66914b_summary,dashboard_summary,e83da1de-4227-43e6-bcc6-73051c66914b,Ad Events Dashboard,sales,7.0,9.0,28,0,"Dashboard 'Ad Events Dashboard' is in the sales domain. It has a complexity score of 7.0 and a consolidation score of 9.0. It contains 28 metrics in total. Key metrics include:
 - Gross Revenue Amount (Base): The raw gross revenue amount for an advertising transaction before any further aggregations.
 - Net Revenue (Base): The raw net revenue amount for an advertising transaction before any further aggregations.
 - Total Gross Revenue: The sum of gross revenue amounts, typically aggregated by various dimensions.
 - Ad Size Category: A categorization of ad sizes into 'Sponsorship', 'Production', or 'Media' based on keywords in the adsize_name.
 - Booking Name First Keyword: Extracts the first keyword from the booking_name field, typically used for high-level categorization of bookings."
-9269e9c6-1ad0-4415-96c3-aca8a710ba01_summary,dashboard,9269e9c6-1ad0-4415-96c3-aca8a710ba01,Team Sales Performance - FY26 (Interim),sales,8.0,7.0,22,0,"Dashboard 'Team Sales Performance - FY26 (Interim)' is in the sales domain. It has a complexity score of 8.0 and a consolidation score of 7.0. It contains 22 metrics in total. Key metrics include:
+9269e9c6-1ad0-4415-96c3-aca8a710ba01_summary,dashboard_summary,9269e9c6-1ad0-4415-96c3-aca8a710ba01,Team Sales Performance - FY26 (Interim),sales,8.0,7.0,22,0,"Dashboard 'Team Sales Performance - FY26 (Interim)' is in the sales domain. It has a complexity score of 8.0 and a consolidation score of 7.0. It contains 22 metrics in total. Key metrics include:
 - Advertiser Parent: The top-level parent company or group for an advertiser.
 - Financial Quarter: The financial quarter (e.g., Q1, Q2) associated with the sales record.
 - Financial Short Month: The abbreviated financial month (e.g., Jul, Aug) associated with the sales record.
 - Booking Line Created Date: The date when the sales booking line was created.
 - Fix Date LOD: A 'fixed' date of record, potentially for specific reporting purposes."
-61f1feb4-fc3e-4bee-b987-84c86cfe6425_summary,dashboard,61f1feb4-fc3e-4bee-b987-84c86cfe6425,Digital - Publications and Products Monthly,advertising,6.0,8.0,8,0,"Dashboard 'Digital - Publications and Products Monthly' is in the advertising domain. It has a complexity score of 6.0 and a consolidation score of 8.0. It contains 8 metrics in total. Key metrics include:
+61f1feb4-fc3e-4bee-b987-84c86cfe6425_summary,dashboard_summary,61f1feb4-fc3e-4bee-b987-84c86cfe6425,Digital - Publications and Products Monthly,advertising,6.0,8.0,8,0,"Dashboard 'Digital - Publications and Products Monthly' is in the advertising domain. It has a complexity score of 6.0 and a consolidation score of 8.0. It contains 8 metrics in total. Key metrics include:
 - Financial Year: The fiscal year associated with the ad sales performance data.
 - Revenue Group Subtype: A granular classification of revenue streams, such as 'DIGITAL', 'PROGRAMMATIC EXCHANGE', 'PROGRAMMATIC SOURCE'.
 - Unified Publication Name: The standardized name of the publication associated with the ad sale.
 - Revenue Type: The primary classification of revenue, used in conjunction with 'xtend_flag' for further categorization.
 - XTEND Flag: A flag indicating if the revenue is associated with 'XTEND' (a specific revenue stream or product). 'Y' typically means XTEND."
-6a26c78f-0070-4fb3-88b8-691ee4a4485a_summary,dashboard,6a26c78f-0070-4fb3-88b8-691ee4a4485a,Circ Budget Revenue Weekly Report,finance,8.0,9.0,17,0,"Dashboard 'Circ Budget Revenue Weekly Report' is in the finance domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 17 metrics in total. Key metrics include:
+6a26c78f-0070-4fb3-88b8-691ee4a4485a_summary,dashboard_summary,6a26c78f-0070-4fb3-88b8-691ee4a4485a,Circ Budget Revenue Weekly Report,finance,8.0,9.0,17,0,"Dashboard 'Circ Budget Revenue Weekly Report' is in the finance domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 17 metrics in total. Key metrics include:
 - Fiscal Quarter of Year: The fiscal quarter of the year for the reported data.
 - OS Level 8 Dimension: An organizational structure level, used here for filtering out 'DTI Free Copies'.
 - Standardized Publication Name: Publication names standardized into common categories (e.g., 'The Herald Sun' from 'Herald Sun', 'Sunday Herald Sun'). Used for grouping and filtering.
 - Derived Region: Geographic region derived from the standardized publication name.
 - Channel Group (Retail): Sales channel grouped into 'Retail' or other categories."
-6de90f2a-b3f3-46fe-a4fe-13474b2d6618_summary,dashboard,6de90f2a-b3f3-46fe-a4fe-13474b2d6618,PACMAN AND EXCLUDE LOD,finance,7.0,8.0,9,0,"Dashboard 'PACMAN AND EXCLUDE LOD' is in the finance domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 9 metrics in total. Key metrics include:
+6de90f2a-b3f3-46fe-a4fe-13474b2d6618_summary,dashboard_summary,6de90f2a-b3f3-46fe-a4fe-13474b2d6618,PACMAN AND EXCLUDE LOD,finance,7.0,8.0,9,0,"Dashboard 'PACMAN AND EXCLUDE LOD' is in the finance domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 9 metrics in total. Key metrics include:
 - Total Product Revenue (Exclude LOD): Total product revenue from the `dv_exclude_product_l3_and_l4` dataset.
 - Total Product Revenue Merged (Exclude LOD): Total product revenue, potentially after some merging or deduplication logic, from the `dv_exclude_product_l3_and_l4` dataset.
 - Dynamic Product Hierarchy Dimension: A dynamic dimension that allows users to switch between different product hierarchy levels (Category, Product Name, L1-L4). This is driven by a Looker Studio parameter.
 - Margin Level: The margin level associated with a product.
 - Total Product Revenue (PACMAN): Total product revenue from the `dv_pacman_running_expense` dataset."
-705edcb5-737a-4600-b1a7-11870177f97a_summary,dashboard,705edcb5-737a-4600-b1a7-11870177f97a,Programmatic Impact Reporting,advertising,7.0,9.0,11,0,"Dashboard 'Programmatic Impact Reporting' is in the advertising domain. It has a complexity score of 7.0 and a consolidation score of 9.0. It contains 11 metrics in total. Key metrics include:
+705edcb5-737a-4600-b1a7-11870177f97a_summary,dashboard_summary,705edcb5-737a-4600-b1a7-11870177f97a,Programmatic Impact Reporting,advertising,7.0,9.0,11,0,"Dashboard 'Programmatic Impact Reporting' is in the advertising domain. It has a complexity score of 7.0 and a consolidation score of 9.0. It contains 11 metrics in total. Key metrics include:
 - Data Load Datetime (Second Grain): The timestamp of when the data was loaded, truncated to the second. Used for time-series analysis or data freshness checks.
 - Financial Short Month: The abbreviated financial month (e.g., 'Oct').
 - Financial Year: The financial year for the revenue transaction.
 - Revenue Transaction Status: The status of the revenue transaction (e.g., 'Billed', 'Booked').
 - Source Publishing Division: The publishing division from which the revenue originated."
-b15d856f-e3ce-4991-bf2a-92395390524f_summary,dashboard,b15d856f-e3ce-4991-bf2a-92395390524f,Programmatic Rolling 60 Day Overview_NQ Data,advertising,2.0,6.0,2,0,"Dashboard 'Programmatic Rolling 60 Day Overview_NQ Data' is in the advertising domain. It has a complexity score of 2.0 and a consolidation score of 6.0. It contains 2 metrics in total. Key metrics include:
+b15d856f-e3ce-4991-bf2a-92395390524f_summary,dashboard_summary,b15d856f-e3ce-4991-bf2a-92395390524f,Programmatic Rolling 60 Day Overview_NQ Data,advertising,2.0,6.0,2,0,"Dashboard 'Programmatic Rolling 60 Day Overview_NQ Data' is in the advertising domain. It has a complexity score of 2.0 and a consolidation score of 6.0. It contains 2 metrics in total. Key metrics include:
 - Revenue Net by Product Type: Total net revenue generated, broken down by the product type (e.g., Display, Video).
 - Revenue Net by Transaction Type Category: Total net revenue categorized into broader transaction types: 'Guaranteed', 'Deal', or 'Open Auction'. Any unmapped transaction types will appear as their original value."
-783f341c-8660-4e90-bab8-9bc860119cf5_summary,dashboard,783f341c-8660-4e90-bab8-9bc860119cf5,Deals Dashboard,advertising,6.0,8.0,11,0,"Dashboard 'Deals Dashboard' is in the advertising domain. It has a complexity score of 6.0 and a consolidation score of 8.0. It contains 11 metrics in total. Key metrics include:
+783f341c-8660-4e90-bab8-9bc860119cf5_summary,dashboard_summary,783f341c-8660-4e90-bab8-9bc860119cf5,Deals Dashboard,advertising,6.0,8.0,11,0,"Dashboard 'Deals Dashboard' is in the advertising domain. It has a complexity score of 6.0 and a consolidation score of 8.0. It contains 11 metrics in total. Key metrics include:
 - Revenue Net: The net revenue generated from advertising deals.
 - Advertiser: The name of the advertiser.
 - Buyer: The name of the buyer associated with the advertising deal.
 - Source: The platform or origin of the advertising transaction (e.g., DFP, Rubicon).
 - Source Transaction Type: The type of transaction from the source (e.g., DEAL, UFR). The value is consistently converted to uppercase."
-77c68c35-20ce-477a-b216-0c781d43a8ca_summary,dashboard,77c68c35-20ce-477a-b216-0c781d43a8ca,Cecile - Adsales Adhoc Analysis,advertising,5.0,8.0,4,0,"Dashboard 'Cecile - Adsales Adhoc Analysis' is in the advertising domain. It has a complexity score of 5.0 and a consolidation score of 8.0. It contains 4 metrics in total. Key metrics include:
+77c68c35-20ce-477a-b216-0c781d43a8ca_summary,dashboard_summary,77c68c35-20ce-477a-b216-0c781d43a8ca,Cecile - Adsales Adhoc Analysis,advertising,5.0,8.0,4,0,"Dashboard 'Cecile - Adsales Adhoc Analysis' is in the advertising domain. It has a complexity score of 5.0 and a consolidation score of 8.0. It contains 4 metrics in total. Key metrics include:
 - Total Gross Revenue: The sum of gross revenue amounts for advertising sales. This metric is filtered to include only 'Booked' or 'Billed' transactions, exclude 'Medium Rare Content Agency' from source publishing division, target a specific invoice number ('-1'), and focus on particular source systems ('PLUTO', 'CPQ', 'ADPT') for the financial year '2025'.
 - Finance Operating Statement Record Count: A count of records from the finance operating statement, grouped by 'os_level_5' for specific fiscal weeks. This likely indicates activity or volume within certain financial categories or organizational levels.
 - Data Load Datetime (Truncated to Second): The timestamp indicating when the data was loaded into the system, truncated to the second. This dimension is used to monitor data freshness or specific data load events for particular unified publication GL codes.
 - Total Financial Week ID Sum (Internal Use): This metric calculates the sum of 'financial_week' IDs. Based on its usage in the original query (ordering), it appears to be an internal Looker Studio artifact or a technical aggregation rather than a direct business metric."
-b1c5901f-a535-42eb-870d-05cc025f7c27_summary,dashboard,b1c5901f-a535-42eb-870d-05cc025f7c27,OS extract for month end rec,finance,8.0,9.0,0,0,"Dashboard 'OS extract for month end rec' is in the finance domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 0 metrics in total. Key metrics include:
+b1c5901f-a535-42eb-870d-05cc025f7c27_summary,dashboard_summary,b1c5901f-a535-42eb-870d-05cc025f7c27,OS extract for month end rec,finance,8.0,9.0,0,0,"Dashboard 'OS extract for month end rec' is in the finance domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 0 metrics in total. Key metrics include:
 "
-4d8074b2-17a8-48ba-babe-c536359b1f64_summary,dashboard,4d8074b2-17a8-48ba-babe-c536359b1f64,Final_Draft Adsales Performance Dashboard - FY25 20241127,sales,9.0,6.0,33,0,"Dashboard 'Final_Draft Adsales Performance Dashboard - FY25 20241127' is in the sales domain. It has a complexity score of 9.0 and a consolidation score of 6.0. It contains 33 metrics in total. Key metrics include:
+4d8074b2-17a8-48ba-babe-c536359b1f64_summary,dashboard_summary,4d8074b2-17a8-48ba-babe-c536359b1f64,Final_Draft Adsales Performance Dashboard - FY25 20241127,sales,9.0,6.0,33,0,"Dashboard 'Final_Draft Adsales Performance Dashboard - FY25 20241127' is in the sales domain. It has a complexity score of 9.0 and a consolidation score of 6.0. It contains 33 metrics in total. Key metrics include:
 - Financial Short Month: The abbreviated name of the financial month (e.g., 'Jul', 'Aug'). Used for grouping and display.
 - Financial Year: The financial year. Used for grouping and display.
 - Financial Short Month (Ordered): The financial short month, prefixed with a number to ensure correct chronological ordering in visualizations (e.g., '1.Jul', '2.Aug').
 - Revenue Type or XTEND: Categorizes revenue as 'XTEND' if the 'xtend_flag' is 'Y', otherwise uses the original 'revenue_type'.
 - Financial Quarter: The financial quarter as an integer."
-6f1c8731-02da-464f-b146-bf2947860735_summary,dashboard,6f1c8731-02da-464f-b146-bf2947860735,Programmatic Sales_NQ Data,advertising,7.0,8.0,21,0,"Dashboard 'Programmatic Sales_NQ Data' is in the advertising domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 21 metrics in total. Key metrics include:
+6f1c8731-02da-464f-b146-bf2947860735_summary,dashboard_summary,6f1c8731-02da-464f-b146-bf2947860735,Programmatic Sales_NQ Data,advertising,7.0,8.0,21,0,"Dashboard 'Programmatic Sales_NQ Data' is in the advertising domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 21 metrics in total. Key metrics include:
 - Advertiser: The name of the advertiser.
 - Portfolio Parent Group: The top-level grouping for a portfolio, e.g., agency networks or consortiums.
 - Portfolio Child Group: A sub-grouping within a Portfolio Parent Group.
 - Transaction Type: The type of advertising transaction, e.g., 'Deal', 'Guaranteed'.
 - Financial Year: The financial year of the transaction."
-4bd7954c-5a94-4fb6-92e1-ed152b1cf7b3_summary,dashboard,4bd7954c-5a94-4fb6-92e1-ed152b1cf7b3,Copy of Interim Adsales Performance Dashboard for FY26,advertising,7.0,8.0,4,0,"Dashboard 'Copy of Interim Adsales Performance Dashboard for FY26' is in the advertising domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 4 metrics in total. Key metrics include:
+4bd7954c-5a94-4fb6-92e1-ed152b1cf7b3_summary,dashboard_summary,4bd7954c-5a94-4fb6-92e1-ed152b1cf7b3,Copy of Interim Adsales Performance Dashboard for FY26,advertising,7.0,8.0,4,0,"Dashboard 'Copy of Interim Adsales Performance Dashboard for FY26' is in the advertising domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 4 metrics in total. Key metrics include:
 - Current FY Gross Revenue (in '000s): Gross revenue amount for the current fiscal year (relative_fy_year_offset = 0), expressed in thousands. This metric represents the current period's performance.
 - Prior FY Gross Revenue (in '000s): Gross revenue amount for the prior fiscal year (relative_fy_year_offset = 1), expressed in thousands. This metric is used for year-over-year comparisons to assess performance trends.
 - Unified Publication Category: Categorizes unified publications into 'Sundry Pubs' or 'Non Sundry Pubs' based on a predefined, hardcoded list of publication names. This helps in grouping publications for aggregated reporting and analysis.
 - Minimum Data Load Timestamp: The earliest timestamp when the `adsales_performance` data was loaded into the system. This metric is typically used to monitor data freshness and ensure data quality for the dashboard."
-258a722d-9b6e-45df-ba00-1b9954ec36b2_summary,dashboard,258a722d-9b6e-45df-ba00-1b9954ec36b2,Debtor to Account Mapping,advertising,3.0,2.0,5,0,"Dashboard 'Debtor to Account Mapping' is in the advertising domain. It has a complexity score of 3.0 and a consolidation score of 2.0. It contains 5 metrics in total. Key metrics include:
+258a722d-9b6e-45df-ba00-1b9954ec36b2_summary,dashboard_summary,258a722d-9b6e-45df-ba00-1b9954ec36b2,Debtor to Account Mapping,advertising,3.0,2.0,5,0,"Dashboard 'Debtor to Account Mapping' is in the advertising domain. It has a complexity score of 3.0 and a consolidation score of 2.0. It contains 5 metrics in total. Key metrics include:
 - Adpoint Account: Represents the account identifier from the Adpoint system.
 - Genera Booking Account: Represents the account identifier from the Genera Booking system.
 - Medium Rare Debtor Account: Represents the debtor account identifier specific to Medium Rare.
 - National Debtor Account: Represents the national debtor account identifier.
 - Last Update Time (Metadata): The last time the source table (`v_asl_gbaba_act_xref`) was modified, derived from BigQuery's internal metadata."
-57d87efe-c112-4d42-be1b-045f0c8ca73e_summary,dashboard,57d87efe-c112-4d42-be1b-045f0c8ca73e,Commercial Finance Scorecards,finance,8.0,9.0,82,0,"Dashboard 'Commercial Finance Scorecards' is in the finance domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 82 metrics in total. Key metrics include:
+57d87efe-c112-4d42-be1b-045f0c8ca73e_summary,dashboard_summary,57d87efe-c112-4d42-be1b-045f0c8ca73e,Commercial Finance Scorecards,finance,8.0,9.0,82,0,"Dashboard 'Commercial Finance Scorecards' is in the finance domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 82 metrics in total. Key metrics include:
 - Always On Digital Sales (V): Sum of always on digital sales values (Version V).
 - Breach Sales (V): Sum of breach sales values (Version V).
 - Closing Base 3rd Party (V): Sum of closing base 3rd party values (Version V).
 - Essentials (V): Sum of essentials values (Version V).
 - General Offer Sales (V): Sum of general offer sales values (Version V)."
-23c8b213-a9f0-4158-b8fa-bff14425abb5_summary,dashboard,23c8b213-a9f0-4158-b8fa-bff14425abb5,TM1 NewsQuery Tables,finance,3.0,6.0,15,0,"Dashboard 'TM1 NewsQuery Tables' is in the finance domain. It has a complexity score of 3.0 and a consolidation score of 6.0. It contains 15 metrics in total. Key metrics include:
+23c8b213-a9f0-4158-b8fa-bff14425abb5_summary,dashboard_summary,23c8b213-a9f0-4158-b8fa-bff14425abb5,TM1 NewsQuery Tables,finance,3.0,6.0,15,0,"Dashboard 'TM1 NewsQuery Tables' is in the finance domain. It has a complexity score of 3.0 and a consolidation score of 6.0. It contains 15 metrics in total. Key metrics include:
 - Add Volume: Represents the volume of additions, likely related to subscriptions or base changes.
 - Category Name: Categorization of subscriptions or products.
 - Closing Base: The total base count at the end of a period, likely subscriptions or customer base.
 - Earned Amount: The amount of revenue or value earned.
 - Fiscal Week ID: Identifier for a specific fiscal week."
-d05b3d29-4437-4ee5-987a-e0109eb9590e_summary,dashboard,d05b3d29-4437-4ee5-987a-e0109eb9590e,Digi Subsifying,finance,8.0,9.0,37,0,"Dashboard 'Digi Subsifying' is in the finance domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 37 metrics in total. Key metrics include:
+d05b3d29-4437-4ee5-987a-e0109eb9590e_summary,dashboard_summary,d05b3d29-4437-4ee5-987a-e0109eb9590e,Digi Subsifying,finance,8.0,9.0,37,0,"Dashboard 'Digi Subsifying' is in the finance domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 37 metrics in total. Key metrics include:
 - Budget Adds Quantity: The budgeted quantity of new subscriptions added.
 - Budget Cancels Quantity: The budgeted quantity of subscriptions cancelled.
 - Budget Closing Base: The budgeted number of active subscriptions at the end of a period.
 - Budget Earned Amount: The budgeted revenue earned from subscriptions.
 - Budget Net Adds Quantity: The budgeted net change in subscriptions (adds minus cancels)."
-d7412673-0af1-4efe-8374-ca475b001fb6_summary,dashboard,d7412673-0af1-4efe-8374-ca475b001fb6,Finance OS datasource template report,finance,7.0,8.0,38,0,"Dashboard 'Finance OS datasource template report' is in the finance domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 38 metrics in total. Key metrics include:
+d7412673-0af1-4efe-8374-ca475b001fb6_summary,dashboard_summary,d7412673-0af1-4efe-8374-ca475b001fb6,Finance OS datasource template report,finance,7.0,8.0,38,0,"Dashboard 'Finance OS datasource template report' is in the finance domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 38 metrics in total. Key metrics include:
 - Actual Amount: The actual financial amount recorded for a given period and dimension combination.
 - Fiscal Year: The fiscal year associated with the financial data, derived from the calendar dimension.
 - Source System Name: The name of the source system from which the financial data originated (e.g., SAP, Oracle).
 - Estimate Amount: The estimated financial amount for a given period.
 - True Up Adjustment Amount: The amount representing true-up adjustments made to financial figures."
-a1b901e6-c4fb-44bc-955a-3a7070c15829_summary,dashboard,a1b901e6-c4fb-44bc-955a-3a7070c15829,Revenue Movement,finance,7.0,8.0,15,0,"Dashboard 'Revenue Movement' is in the finance domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 15 metrics in total. Key metrics include:
+a1b901e6-c4fb-44bc-955a-3a7070c15829_summary,dashboard_summary,a1b901e6-c4fb-44bc-955a-3a7070c15829,Revenue Movement,finance,7.0,8.0,15,0,"Dashboard 'Revenue Movement' is in the finance domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 15 metrics in total. Key metrics include:
 - Total Gross Amount Difference: The sum of the gross amount difference, representing the total revenue movement or change in gross amount.
 - Advertiser Parent: The parent entity or group associated with the advertiser.
 - Booking Line ID: A unique identifier for a specific line item within a booking.
 - Booking Number: The primary identifier for a booking.
 - Movement Date: The specific date on which the revenue movement occurred."
-e9d8a216-4950-4d30-b344-5011776edbdf_summary,dashboard,e9d8a216-4950-4d30-b344-5011776edbdf,Adex Report,advertising,8.0,9.0,8,0,"Dashboard 'Adex Report' is in the advertising domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 8 metrics in total. Key metrics include:
+e9d8a216-4950-4d30-b344-5011776edbdf_summary,dashboard_summary,e9d8a216-4950-4d30-b344-5011776edbdf,Adex Report,advertising,8.0,9.0,8,0,"Dashboard 'Adex Report' is in the advertising domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 8 metrics in total. Key metrics include:
 - Total Spend: The total advertising spend for a given period and set of dimensions.
 - Current Period Spend: Total advertising spend within the defined current reporting period (e.g., Aug 23 - Jun 24).
 - Previous Year Spend: Total advertising spend for the equivalent period in the previous year (e.g., Aug 22 - Jun 23).
 - Current Period NEWS CORP Spend: Advertising spend for 'NEWS CORP' media network within the current reporting period.
 - Previous Year NEWS CORP Spend: Advertising spend for 'NEWS CORP' media network for the equivalent period in the previous year."
-d4d68a71-2b12-4caf-bc6b-96fc2d18a025_summary,dashboard,d4d68a71-2b12-4caf-bc6b-96fc2d18a025,Adsales Details Dashboard,advertising,6.0,7.0,16,0,"Dashboard 'Adsales Details Dashboard' is in the advertising domain. It has a complexity score of 6.0 and a consolidation score of 7.0. It contains 16 metrics in total. Key metrics include:
+d4d68a71-2b12-4caf-bc6b-96fc2d18a025_summary,dashboard_summary,d4d68a71-2b12-4caf-bc6b-96fc2d18a025,Adsales Details Dashboard,advertising,6.0,7.0,16,0,"Dashboard 'Adsales Details Dashboard' is in the advertising domain. It has a complexity score of 6.0 and a consolidation score of 7.0. It contains 16 metrics in total. Key metrics include:
 - Day of Week (Ordered): Represents the day of the week, with custom prefixes for ordering in a specific sequence (Monday first, Sunday last). Used for display ordering in the dashboard.
 - Day of Week: The day of the week as stored in the source table, likely a string representation (e.g., 'Monday', 'Tuesday').
 - Advertiser Name: The full name of the advertiser associated with the ad campaign or booking.
 - Employee Name: The name of the sales employee or account manager responsible for the advertiser.
 - Publication Date: The specific date on which the advertisement was published or scheduled to be published."
-f353b933-30eb-4853-9976-0d35371db7d7_summary,dashboard,f353b933-30eb-4853-9976-0d35371db7d7,Month End Reporting Reconcilation,finance,2.0,1.0,4,0,"Dashboard 'Month End Reporting Reconcilation' is in the finance domain. It has a complexity score of 2.0 and a consolidation score of 1.0. It contains 4 metrics in total. Key metrics include:
+f353b933-30eb-4853-9976-0d35371db7d7_summary,dashboard_summary,f353b933-30eb-4853-9976-0d35371db7d7,Month End Reporting Reconcilation,finance,2.0,1.0,4,0,"Dashboard 'Month End Reporting Reconcilation' is in the finance domain. It has a complexity score of 2.0 and a consolidation score of 1.0. It contains 4 metrics in total. Key metrics include:
 - Month Name: The name of the month (e.g., 'January', 'February') associated with the General Ledger reconciliation data. This serves as the primary grouping dimension for the reported metrics.
 - Fiscal Month Number: The numeric representation of the fiscal month (e.g., 1 for July, 12 for June, depending on the fiscal year start) from the General Ledger reconciliation data. This column is used as the basis for aggregation.
 - Count of Fiscal Month Numbers: The total count of `fy_month_num` entries recorded in the General Ledger reconciliation data, grouped by `month_name`. This metric likely represents the number of records or transactions associated with each fiscal month.
 - Sum of Fiscal Month Numbers: The sum of `fy_month_num` values recorded in the General Ledger reconciliation data, grouped by `month_name`. The business interpretation of summing fiscal month numbers (e.g., 1+2+3=6) is unusual and unclear without further context. It might indicate an incorrect aggregation or a specific internal calculation."
-5491badf-5ec0-4b4f-a427-b12a3a3395dd_summary,dashboard,5491badf-5ec0-4b4f-a427-b12a3a3395dd,Programmatic / Tubi Performance FY25,finance,9.0,9.0,31,0,"Dashboard 'Programmatic / Tubi Performance FY25' is in the finance domain. It has a complexity score of 9.0 and a consolidation score of 9.0. It contains 31 metrics in total. Key metrics include:
+5491badf-5ec0-4b4f-a427-b12a3a3395dd_summary,dashboard_summary,5491badf-5ec0-4b4f-a427-b12a3a3395dd,Programmatic / Tubi Performance FY25,finance,9.0,9.0,31,0,"Dashboard 'Programmatic / Tubi Performance FY25' is in the finance domain. It has a complexity score of 9.0 and a consolidation score of 9.0. It contains 31 metrics in total. Key metrics include:
 - Cost Model Type: The type of cost model associated with the revenue, e.g., 'GUARANTEED', 'NON-GUARANTEED', 'PMP'.
 - Financial Month: The numeric representation of the financial month.
 - Financial Quarter: The numeric representation of the financial quarter.
 - Financial Short Month: The abbreviated name of the financial month.
 - Relative FY Month Offset: Offset of the month relative to the current financial year (e.g., 0 for current month, -1 for previous month)."
-155c4518-72bf-4309-a0e9-240dd564f421_summary,dashboard,155c4518-72bf-4309-a0e9-240dd564f421,Portfolio Performance Dashboard,finance|sales,8.0,6.0,34,0,"Dashboard 'Portfolio Performance Dashboard' is in the finance|sales domain. It has a complexity score of 8.0 and a consolidation score of 6.0. It contains 34 metrics in total. Key metrics include:
+155c4518-72bf-4309-a0e9-240dd564f421_summary,dashboard_summary,155c4518-72bf-4309-a0e9-240dd564f421,Portfolio Performance Dashboard,finance|sales,8.0,6.0,34,0,"Dashboard 'Portfolio Performance Dashboard' is in the finance|sales domain. It has a complexity score of 8.0 and a consolidation score of 6.0. It contains 34 metrics in total. Key metrics include:
 - General Sales Director: The name of the General Sales Director associated with the sales data.
 - Advertiser Group: The group to which an advertiser belongs.
 - Relative Fiscal Month Offset: Offset of the fiscal month relative to a reference point (e.g., 0 for current month, -1 for previous month).
 - Relative Fiscal Year Offset: Offset of the fiscal year relative to a reference point (e.g., 0 for current year, -1 for previous year).
 - Financial Month: The financial month number."
-52c11c9c-052a-4e45-9cda-8fecd87d7964_summary,dashboard,52c11c9c-052a-4e45-9cda-8fecd87d7964,Team Sales Performance - FY26 (Interim)(with Pluto Reporting Date),sales,8.0,8.0,12,0,"Dashboard 'Team Sales Performance - FY26 (Interim)(with Pluto Reporting Date)' is in the sales domain. It has a complexity score of 8.0 and a consolidation score of 8.0. It contains 12 metrics in total. Key metrics include:
+52c11c9c-052a-4e45-9cda-8fecd87d7964_summary,dashboard_summary,52c11c9c-052a-4e45-9cda-8fecd87d7964,Team Sales Performance - FY26 (Interim)(with Pluto Reporting Date),sales,8.0,8.0,12,0,"Dashboard 'Team Sales Performance - FY26 (Interim)(with Pluto Reporting Date)' is in the sales domain. It has a complexity score of 8.0 and a consolidation score of 8.0. It contains 12 metrics in total. Key metrics include:
 - Gross Revenue Amount (Current FY): Total gross revenue amount for the current fiscal year (relative_fy_year_offset = 0).
 - Gross Revenue Amount (Next FY): Total gross revenue amount for the next fiscal year (relative_fy_year_offset = 1).
 - Gross Revenue Amount (Current FY, '000s): Gross revenue amount for the current fiscal year, scaled to thousands. The original query logic implies this is always scaled.
 - Gross Revenue Amount (Next FY, '000s): Gross revenue amount for the next fiscal year, scaled to thousands. The original query logic implies this is always scaled.
 - Programmatic Revenue (Raw): Gross revenue identified as programmatic based on specific publication names or a complex date and attribute logic. This metric is derived from two distinct conditions: either the unified publication name is one of a specific set (OUTSTREAM, XTEND, EDMEDIA, ECOMMERCE) for the current FY, OR for the current FY, a derived booking line date is less than or equal to 365 days prior to a hardcoded date."
-c441950c-1e3f-432c-9838-847d1d315b9e_summary,dashboard,c441950c-1e3f-432c-9838-847d1d315b9e,Circulation Insights for Analysis,finance,7.0,8.0,12,0,"Dashboard 'Circulation Insights for Analysis' is in the finance domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 12 metrics in total. Key metrics include:
+c441950c-1e3f-432c-9838-847d1d315b9e_summary,dashboard_summary,c441950c-1e3f-432c-9838-847d1d315b9e,Circulation Insights for Analysis,finance,7.0,8.0,12,0,"Dashboard 'Circulation Insights for Analysis' is in the finance domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 12 metrics in total. Key metrics include:
 - Draw Volume: The volume of circulation items categorized as 'DRAW'. This is an intermediate calculation used for aggregation.
 - Returns Volume: The volume of circulation items categorized as 'RETURNS'. This is an intermediate calculation used for aggregation.
 - Adjustment Volume: The volume of circulation items categorized as 'ADJUSTMENT'. This is an intermediate calculation used for aggregation.
 - Total Draw Volume: The aggregated total volume of circulation items categorized as 'DRAW'.
 - Total Returns Volume: The aggregated total volume of circulation items categorized as 'RETURNS'."
-80ca81f3-0671-40ef-a0a9-825a1580ca1b_summary,dashboard,80ca81f3-0671-40ef-a0a9-825a1580ca1b,Team Sales Performance,sales,1.0,2.0,3,0,"Dashboard 'Team Sales Performance' is in the sales domain. It has a complexity score of 1.0 and a consolidation score of 2.0. It contains 3 metrics in total. Key metrics include:
+80ca81f3-0671-40ef-a0a9-825a1580ca1b_summary,dashboard_summary,80ca81f3-0671-40ef-a0a9-825a1580ca1b,Team Sales Performance,sales,1.0,2.0,3,0,"Dashboard 'Team Sales Performance' is in the sales domain. It has a complexity score of 1.0 and a consolidation score of 2.0. It contains 3 metrics in total. Key metrics include:
 - Advertiser Name: The name of the advertiser associated with sales performance data. Used as a primary dimension or filter in the dashboard.
 - Portfolio Conformed Name Sync: The conformed name of the sales portfolio. Used as a dimension and specifically as a filter with hardcoded values in one of the queries.
 - Sales Segment L2 Name Sync: The name of the sales segment at level 2. Used as a dimension or filter in the dashboard."
-b9dfd2f4-92fa-4f81-a5b1-17de880470f9_summary,dashboard,b9dfd2f4-92fa-4f81-a5b1-17de880470f9,Contra Report,finance;sales,8.0,7.0,5,0,"Dashboard 'Contra Report' is in the finance;sales domain. It has a complexity score of 8.0 and a consolidation score of 7.0. It contains 5 metrics in total. Key metrics include:
+b9dfd2f4-92fa-4f81-a5b1-17de880470f9_summary,dashboard_summary,b9dfd2f4-92fa-4f81-a5b1-17de880470f9,Contra Report,finance;sales,8.0,7.0,5,0,"Dashboard 'Contra Report' is in the finance;sales domain. It has a complexity score of 8.0 and a consolidation score of 7.0. It contains 5 metrics in total. Key metrics include:
 - Filtered Portfolio Owner Full Name: The full name of the portfolio owner, filtered for 'Contra' industry pillar and 'Renee Sycamore' sales segment GM.
 - Gross Revenue Amount: The total gross revenue amount, aggregated from advertising sales data, with specific exclusions for cost model types, revenue transaction statuses, style names, and publishing divisions. Also includes complex logic for 'Suddenly%' publications and 'CTR' advertiser names.
 - Transformed Adpoint Account Number: Adpoint Account Number, transformed to 'ctr1' if it matches specific hardcoded account numbers (13019, 52246, 18387).
 - Transformed Advertiser Name: Advertiser Name, transformed to a specific 'CTR_2023_AFL Sports CTR_2023_Sydney Swans CTR_2023_GWS Giants' string if the transformed adpoint account number is 'ctr1'.
 - Filtered Account Count: Count of unique account_number and adpoint_account_number combinations, filtered by specific 'CTR_YYYY' advertiser names or by 'Contra' industry pillar and 'Renee Sycamore' sales segment GM."
-4d22b4c2-4bb3-49db-a0c1-4d46d4fba101_summary,dashboard,4d22b4c2-4bb3-49db-a0c1-4d46d4fba101,Copy of Acquisitions - Extracts,finance,7.0,8.0,12,0,"Dashboard 'Copy of Acquisitions - Extracts' is in the finance domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 12 metrics in total. Key metrics include:
+4d22b4c2-4bb3-49db-a0c1-4d46d4fba101_summary,dashboard_summary,4d22b4c2-4bb3-49db-a0c1-4d46d4fba101,Copy of Acquisitions - Extracts,finance,7.0,8.0,12,0,"Dashboard 'Copy of Acquisitions - Extracts' is in the finance domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 12 metrics in total. Key metrics include:
 - Acquisition Count: The total count of acquisitions based on the applied filters and dimensions.
 - Fiscal Year: The fiscal year of the acquisition.
 - Fiscal Week of Year: The fiscal week within the fiscal year of the acquisition.
 - Delivery Medium: Categorization of the delivery medium type, with 'Not Available' mapped to 'Digital'.
 - Masthead Group: Grouping of mastheads into broader categories like 'The Australian', 'Metro', 'Regionals', 'Deep Niche Publications', 'Other Publications', or 'Exclude' based on masthead codes."
-5dae02f0-dc48-418c-bdf9-5e5d2b1d6e26_summary,dashboard,5dae02f0-dc48-418c-bdf9-5e5d2b1d6e26,Optimizing Digital Subscriptions Report,consumer,8.0,9.0,9,0,"Dashboard 'Optimizing Digital Subscriptions Report' is in the consumer domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 9 metrics in total. Key metrics include:
+5dae02f0-dc48-418c-bdf9-5e5d2b1d6e26_summary,dashboard_summary,5dae02f0-dc48-418c-bdf9-5e5d2b1d6e26,Optimizing Digital Subscriptions Report,consumer,8.0,9.0,9,0,"Dashboard 'Optimizing Digital Subscriptions Report' is in the consumer domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 9 metrics in total. Key metrics include:
 - Recognition Type: Categorizes subscriptions into 'Print Recognition' or 'Digital Recognition' based on delivery medium and subscriber email flag. This is a critical filter for the dashboard.
 - Masthead Name: The specific publication masthead (e.g., 'The Australian', 'Daily Telegraph'). Derived from `gl_publication_code` and `masthead_code`.
 - Masthead Group: A higher-level grouping of mastheads into categories like 'The Australian', 'Metros', 'Regionals', 'Deep Niche Publications', 'Others', and 'Discontinued'.
 - Masthead Category: Another higher-level categorization of mastheads, such as 'The Australian and Prestige', 'States & Community', 'Commercial Content', 'Free & Lifestyle', and 'Discontinued'.
 - Fiscal Year Week (Month): A formatted string representing the fiscal week and corresponding fiscal month, e.g., 'FY 2025 Week 38 (March)'."
-52dd1ac1-19b5-4695-a7e6-632ef7a9dba3_summary,dashboard,52dd1ac1-19b5-4695-a7e6-632ef7a9dba3,Consumer Finance Landing Page,finance,2.0,3.0,4,0,"Dashboard 'Consumer Finance Landing Page' is in the finance domain. It has a complexity score of 2.0 and a consolidation score of 3.0. It contains 4 metrics in total. Key metrics include:
+52dd1ac1-19b5-4695-a7e6-632ef7a9dba3_summary,dashboard_summary,52dd1ac1-19b5-4695-a7e6-632ef7a9dba3,Consumer Finance Landing Page,finance,2.0,3.0,4,0,"Dashboard 'Consumer Finance Landing Page' is in the finance domain. It has a complexity score of 2.0 and a consolidation score of 3.0. It contains 4 metrics in total. Key metrics include:
 - Scenario: Represents different scenarios or categories within the digital subscriptions data, used for segmentation and filtering.
 - Total Rows: The total number of records in the digital subscriptions dataset. Often used for overall data volume checks or as a simple scorecard metric.
 - Count by Scenario: The count of records for each distinct scenario. Used to understand the distribution of data across different scenarios.
 - Blank Scenario Filter Value: A hardcoded empty string value used as a dimension, likely representing an 'All' or default selection option in a Looker Studio filter for the 'Scenario' dimension."
-3ee20092-1897-49b7-8bcd-4157d5f816eb_summary,dashboard,3ee20092-1897-49b7-8bcd-4157d5f816eb,AdSales Data for Pacing Report,sales,6.0,9.0,8,0,"Dashboard 'AdSales Data for Pacing Report' is in the sales domain. It has a complexity score of 6.0 and a consolidation score of 9.0. It contains 8 metrics in total. Key metrics include:
+3ee20092-1897-49b7-8bcd-4157d5f816eb_summary,dashboard_summary,3ee20092-1897-49b7-8bcd-4157d5f816eb,AdSales Data for Pacing Report,sales,6.0,9.0,8,0,"Dashboard 'AdSales Data for Pacing Report' is in the sales domain. It has a complexity score of 6.0 and a consolidation score of 9.0. It contains 8 metrics in total. Key metrics include:
 - Financial Year: The fiscal year associated with the ad sales performance data.
 - Revenue Group Subtype: A granular classification of revenue groups within ad sales, e.g., 'SUNDRY ADSALES OVERLAY'.
 - Financial Week: The fiscal week within the financial year associated with the ad sales performance data.
 - Financial Week (Integer): The financial week cast to an integer for numerical comparisons and filtering.
 - Filter: Sundry AdSales Overlay: A filter applied to show data only for 'SUNDRY ADSALES OVERLAY' revenue group subtype."
-1a5f7b4e-ea3a-46e4-8b77-b428f4178510_summary,dashboard,1a5f7b4e-ea3a-46e4-8b77-b428f4178510,Team Sales Performance,sales,8.0,9.0,12,0,"Dashboard 'Team Sales Performance' is in the sales domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 12 metrics in total. Key metrics include:
+1a5f7b4e-ea3a-46e4-8b77-b428f4178510_summary,dashboard_summary,1a5f7b4e-ea3a-46e4-8b77-b428f4178510,Team Sales Performance,sales,8.0,9.0,12,0,"Dashboard 'Team Sales Performance' is in the sales domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 12 metrics in total. Key metrics include:
 - Gross Revenue Amount (Base): The base gross revenue amount from the sales data.
 - Previous Year Gross Revenue: The sum of gross revenue for the previous fiscal year (relative_fy_year_offset = -1).
 - Current Year Gross Revenue: The sum of gross revenue for the current fiscal year (relative_fy_year_offset = 0).
 - Previous Year Gross Revenue (Thousands): The sum of gross revenue for the previous fiscal year, divided by 1000.
 - Current Year Gross Revenue (Thousands): The sum of gross revenue for the current fiscal year, divided by 1000."
-f65a9149-93b4-4aa9-aef6-d12002853222_summary,dashboard,f65a9149-93b4-4aa9-aef6-d12002853222,Digital Video Content Audio,advertising,2.0,6.0,7,0,"Dashboard 'Digital Video Content Audio' is in the advertising domain. It has a complexity score of 2.0 and a consolidation score of 6.0. It contains 7 metrics in total. Key metrics include:
+f65a9149-93b4-4aa9-aef6-d12002853222_summary,dashboard_summary,f65a9149-93b4-4aa9-aef6-d12002853222,Digital Video Content Audio,advertising,2.0,6.0,7,0,"Dashboard 'Digital Video Content Audio' is in the advertising domain. It has a complexity score of 2.0 and a consolidation score of 6.0. It contains 7 metrics in total. Key metrics include:
 - Sales Segment L2 Name Sync: Represents the synchronized Level 2 sales segment name, used for grouping or filtering sales data.
 - Booking Number: Unique identifier for a sales booking or transaction.
 - Ad Size Name: The name or description of the advertisement's size or format.
 - Financial Ad Type Name: Categorization of the advertisement type for financial reporting, often including targeting details. This is a key dimension for the 'Digital Video Content Audio' dashboard.
 - Revenue Transaction Status: The current status of a revenue transaction (e.g., Booked, Billed)."
-601ed0d2-e944-4189-8170-d593c8e72026_summary,dashboard,601ed0d2-e944-4189-8170-d593c8e72026,Adex,advertising,8.0,9.0,18,0,"Dashboard 'Adex' is in the advertising domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 18 metrics in total. Key metrics include:
+601ed0d2-e944-4189-8170-d593c8e72026_summary,dashboard_summary,601ed0d2-e944-4189-8170-d593c8e72026,Adex,advertising,8.0,9.0,18,0,"Dashboard 'Adex' is in the advertising domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 18 metrics in total. Key metrics include:
 - Major Category: The primary categorization of the advertising campaign or advertiser.
 - Media Network: The media platform or publisher where the advertisement was placed (e.g., 'NEWS CORP', 'youtube', 'facebook').
 - Calendar Year: The calendar year of the advertising spend.
 - Portfolio Parent Group Name: The parent group name associated with the advertising portfolio.
 - Advertiser: The name of the advertiser."
-6e8b534b-485a-48dd-842d-13dc6bebb01a_summary,dashboard,6e8b534b-485a-48dd-842d-13dc6bebb01a,SuperCoach Subscriptions,consumer,7.0,8.0,11,0,"Dashboard 'SuperCoach Subscriptions' is in the consumer domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 11 metrics in total. Key metrics include:
+6e8b534b-485a-48dd-842d-13dc6bebb01a_summary,dashboard_summary,6e8b534b-485a-48dd-842d-13dc6bebb01a,SuperCoach Subscriptions,consumer,7.0,8.0,11,0,"Dashboard 'SuperCoach Subscriptions' is in the consumer domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 11 metrics in total. Key metrics include:
 - Total Distinct Subscriptions: The total count of unique subscription IDs for SuperCoach acquisitions within the specified period.
 - Total Distinct Subscribers: The total count of unique subscriber IDs associated with SuperCoach movements.
 - Source Masthead: The first two characters of the `sold_in_source_code`, indicating the source masthead of the subscription.
 - Acquisitions by Source Masthead: The count of unique subscription IDs for SuperCoach acquisitions, broken down by the source masthead.
 - Movement Date: The date of the subscription movement, truncated to the day."
-f7a9efeb-df3c-45c9-899d-0bcada701572_summary,dashboard,f7a9efeb-df3c-45c9-899d-0bcada701572,Salaries & Wages Dashboard UAT Version,finance,7.0,3.0,6,0,"Dashboard 'Salaries & Wages Dashboard UAT Version' is in the finance domain. It has a complexity score of 7.0 and a consolidation score of 3.0. It contains 6 metrics in total. Key metrics include:
+f7a9efeb-df3c-45c9-899d-0bcada701572_summary,dashboard_summary,f7a9efeb-df3c-45c9-899d-0bcada701572,Salaries & Wages Dashboard UAT Version,finance,7.0,3.0,6,0,"Dashboard 'Salaries & Wages Dashboard UAT Version' is in the finance domain. It has a complexity score of 7.0 and a consolidation score of 3.0. It contains 6 metrics in total. Key metrics include:
 - Total Amount: The total financial amount recorded in the circulation data.
 - Total Volume: The total volume recorded in the circulation data.
 - Amount for Revenue Type '03': The total financial amount specifically for revenue types whose code starts with '03'. This likely represents a specific category of revenue.
 - Volume for Revenue Type '03': The total volume specifically for revenue types whose code starts with '03'. This likely represents a specific category of volume.
 - Fiscal Year Week Number: The fiscal year and week number, used for time-based aggregation of circulation data."
-a8fe6bb0-3cbf-4d6e-8838-fa6e6dce447f_summary,dashboard,a8fe6bb0-3cbf-4d6e-8838-fa6e6dce447f,Pacing Dashboard,advertising,4.0,6.0,10,0,"Dashboard 'Pacing Dashboard' is in the advertising domain. It has a complexity score of 4.0 and a consolidation score of 6.0. It contains 10 metrics in total. Key metrics include:
+a8fe6bb0-3cbf-4d6e-8838-fa6e6dce447f_summary,dashboard_summary,a8fe6bb0-3cbf-4d6e-8838-fa6e6dce447f,Pacing Dashboard,advertising,4.0,6.0,10,0,"Dashboard 'Pacing Dashboard' is in the advertising domain. It has a complexity score of 4.0 and a consolidation score of 6.0. It contains 10 metrics in total. Key metrics include:
 - Current Month Flag: A flag indicating if the record pertains to the current financial month (1 for current, 0 for not current). Used as a primary filter.
 - Financial Month Number: The month number within the financial year (e.g., 1 for July, 12 for June, depending on financial year start).
 - Financial Year: The financial year (e.g., 2023, 2024).
 - Source: The programmatic advertising source (e.g., 'Kargo', 'AdX'). Used for specific filtering.
 - Static Days: A static count of days, likely representing a fixed number of days for a period or calculation, used in pacing metrics."
-bb49fa78-5abe-4e68-a9c1-8172a832e724_summary,dashboard,bb49fa78-5abe-4e68-a9c1-8172a832e724,optimization,finance,8.0,9.0,22,0,"Dashboard 'optimization' is in the finance domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 22 metrics in total. Key metrics include:
+bb49fa78-5abe-4e68-a9c1-8172a832e724_summary,dashboard_summary,bb49fa78-5abe-4e68-a9c1-8172a832e724,optimization,finance,8.0,9.0,22,0,"Dashboard 'optimization' is in the finance domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 22 metrics in total. Key metrics include:
 - Masthead Group: The group or category of the masthead (e.g., newspaper, magazine, digital property). Used for filtering out 'Discontinued' groups.
 - Finance Recognition Type: The type of financial recognition applied to the transaction or record. Filtered to 'Digital Recognition'.
 - Fiscal Year: The fiscal year of the financial record.
 - Fiscal Month of Year: The fiscal month within the fiscal year.
 - Fiscal Quarter of Year: The fiscal quarter within the fiscal year."
-a17622e2-ad43-49cc-b3c5-1c95036fd14_summary,dashboard,a17622e2-ad43-49cc-b3c5-1c95036fd14,Advertising Rebates Dashboard,advertising,6.0,8.0,16,0,"Dashboard 'Advertising Rebates Dashboard' is in the advertising domain. It has a complexity score of 6.0 and a consolidation score of 8.0. It contains 16 metrics in total. Key metrics include:
+a17622e2-ad43-49cc-b3c5-1c95036fd14_summary,dashboard_summary,a17622e2-ad43-49cc-b3c5-1c95036fd14,Advertising Rebates Dashboard,advertising,6.0,8.0,16,0,"Dashboard 'Advertising Rebates Dashboard' is in the advertising domain. It has a complexity score of 6.0 and a consolidation score of 8.0. It contains 16 metrics in total. Key metrics include:
 - Gross Revenue Excluding Adjustments: The total revenue generated from advertising sales, excluding any adjustments. This is a key metric for understanding core sales performance.
 - Rebate 3 Amount: The total amount of 'Rebate 3' applied to advertising sales. This indicates the value of specific rebate programs.
 - Adjustment Amount: The total amount of adjustments applied to advertising revenue. This could include credits, debits, or other modifications.
 - Gross Revenue Amount: The total gross revenue generated from advertising sales before any adjustments.
 - Account Number: Unique identifier for the client account."
-c560ed20-040d-4c6a-9c3f-ec8bce27d132_summary,dashboard,c560ed20-040d-4c6a-9c3f-ec8bce27d132,Xtend Details,advertising,7.0,8.0,13,0,"Dashboard 'Xtend Details' is in the advertising domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 13 metrics in total. Key metrics include:
+c560ed20-040d-4c6a-9c3f-ec8bce27d132_summary,dashboard_summary,c560ed20-040d-4c6a-9c3f-ec8bce27d132,Xtend Details,advertising,7.0,8.0,13,0,"Dashboard 'Xtend Details' is in the advertising domain. It has a complexity score of 7.0 and a consolidation score of 8.0. It contains 13 metrics in total. Key metrics include:
 - Publication Name: The name of the publication associated with the advertising revenue.
 - Financial Year: The financial year in which the revenue transaction occurred.
 - Revenue Transaction Status: The current status of the revenue transaction, indicating if it's booked or billed.
 - Source Publishing Division: The publishing division from which the revenue originated.
 - Advertiser Name: The name of the advertiser associated with the revenue."
-87651b69-c43e-471f-9c4b-98df120a844_summary,dashboard,87651b69-c43e-471f-9c4b-98df120a844,Programmatic Sales Patches,advertising,3.0,7.0,13,0,"Dashboard 'Programmatic Sales Patches' is in the advertising domain. It has a complexity score of 3.0 and a consolidation score of 7.0. It contains 13 metrics in total. Key metrics include:
+87651b69-c43e-471f-9c4b-98df120a844_summary,dashboard_summary,87651b69-c43e-471f-9c4b-98df120a844,Programmatic Sales Patches,advertising,3.0,7.0,13,0,"Dashboard 'Programmatic Sales Patches' is in the advertising domain. It has a complexity score of 3.0 and a consolidation score of 7.0. It contains 13 metrics in total. Key metrics include:
 - Source: The source of the programmatic sales transaction.
 - Advertiser: The advertiser associated with the programmatic sales transaction.
 - Transaction Type: The type of programmatic sales transaction (e.g., Guaranteed, Non-Guaranteed).
 - Calendar Month: The calendar month of the programmatic sales data.
 - Calendar Year: The calendar year of the programmatic sales data."
-fed70b12-c274-4cde-9920-592ca4c4dab0_summary,dashboard,fed70b12-c274-4cde-9920-592ca4c4dab0,Independent Agency Report,finance,8.0,9.0,27,0,"Dashboard 'Independent Agency Report' is in the finance domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 27 metrics in total. Key metrics include:
+fed70b12-c274-4cde-9920-592ca4c4dab0_summary,dashboard_summary,fed70b12-c274-4cde-9920-592ca4c4dab0,Independent Agency Report,finance,8.0,9.0,27,0,"Dashboard 'Independent Agency Report' is in the finance domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 27 metrics in total. Key metrics include:
 - Agency Parent: The top-level agency group or parent entity associated with the booking or revenue movement.
 - Booking Line Created Date: The date when the booking line was created.
 - Gross Revenue Amount: The total gross revenue amount for a booking line.
 - Relative Calendar Month Offset: Offset of the calendar month relative to the current calendar month.
 - Relative Calendar Year Offset: Offset of the calendar year relative to the current calendar year (0 for current, -1 for previous, etc.)."
-8956e94b-f6d1-46a3-9c7f-87a91fbe98b5_summary,dashboard,8956e94b-f6d1-46a3-9c7f-87a91fbe98b5,LODs,sales,8.0,9.0,23,0,"Dashboard 'LODs' is in the sales domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 23 metrics in total. Key metrics include:
+8956e94b-f6d1-46a3-9c7f-87a91fbe98b5_summary,dashboard_summary,8956e94b-f6d1-46a3-9c7f-87a91fbe98b5,LODs,sales,8.0,9.0,23,0,"Dashboard 'LODs' is in the sales domain. It has a complexity score of 8.0 and a consolidation score of 9.0. It contains 23 metrics in total. Key metrics include:
 - Gross Revenue Amount: The raw gross revenue amount before any adjustments or specific fiscal year filtering.
 - Pipeline: The raw pipeline amount before any adjustments or specific fiscal year filtering.
 - Adjustment Amount: The total amount of adjustments applied to revenue.
 - Publication LGB: A measure related to publication-level gross booking value.
 - Sales Segment LGB: A measure related to sales segment-level gross booking value."
-d3bcf796-2396-4a6f-b0a3-da0b7f299a58_summary,dashboard,d3bcf796-2396-4a6f-b0a3-da0b7f299a58,Publisher and Product Performance Dashboard - FY25 v2,finance,7.0,9.0,6,0,"Dashboard 'Publisher and Product Performance Dashboard - FY25 v2' is in the finance domain. It has a complexity score of 7.0 and a consolidation score of 9.0. It contains 6 metrics in total. Key metrics include:
+d3bcf796-2396-4a6f-b0a3-da0b7f299a58_summary,dashboard_summary,d3bcf796-2396-4a6f-b0a3-da0b7f299a58,Publisher and Product Performance Dashboard - FY25 v2,finance,7.0,9.0,6,0,"Dashboard 'Publisher and Product Performance Dashboard - FY25 v2' is in the finance domain. It has a complexity score of 7.0 and a consolidation score of 9.0. It contains 6 metrics in total. Key metrics include:
 - Financial Ad Type Name: The name of the financial advertising type, used for categorization and reporting.
 - Product Group: The grouping of products (e.g., 'Free News & Lifestyle', 'State & Communities') used for filtering and aggregation.
 - Current FY Revenue (Excl. Future Periods) ('000s): Gross revenue amount for the current financial year, excluding any revenue flagged for future periods. Reported in thousands.
