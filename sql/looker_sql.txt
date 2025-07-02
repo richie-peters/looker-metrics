@@ -110,7 +110,7 @@ SELECT
 FROM
   RankedBigQueryJobsPerReport
 WHERE
-  rn <= 3 -- Select only the top 3 rows per report (randomly picked)
+  rn <= 6 -- Select only the top 3 rows per report (randomly picked)
 ORDER BY
   looker_studio_report_name,
   jobId; -- Order by report name and then jobId for consistent output
