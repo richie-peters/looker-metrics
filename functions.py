@@ -94,33 +94,26 @@ Return a flat JSON structure with the following schema:
 
 def design_secondary_analysis_prompt():
     """
-    Designs the secondary analysis prompt. This version is heavily updated to instruct
-    the AI to synthesize and compare the initial analysis with the live data results,
-    deriving deeper insights and value.
+    Designs the secondary analysis prompt. This version is updated to accept
+    a single, structured summary of all executed validation queries.
     """
     secondary_prompt = """
     SECONDARY LOOKER CONSOLIDATION ANALYSIS: SYNTHESIS AND INSIGHT
     ===============================================================
 
-    You are an expert data architect. Your mission is to synthesize three distinct sources of information:
-    1. An initial AI-generated analysis of a dashboard's structure and metrics.
-    2. The detailed logic and known governance issues for each metric.
-    3. The actual results from running validation queries against a live BigQuery database.
+    You are an expert data architect. Your mission is to synthesize multiple sources of information to generate a strategic analysis of a Looker Studio dashboard.
 
     **GUIDING PRINCIPLES FOR ANALYSIS:**
-    1.  **SYNTHESIZE AND COMPARE:** Your most important task is to find meaningful insights by comparing the inputs.
-        -   **Theory vs. Reality:** Does the data from `actual_sql_results` confirm the assumptions in `metrics_details`? If a metric's `sql_logic` expects a `user_id`, but the `sample_data` shows that column is 90% NULL, that is a critical finding to report.
-        -   **Validate Governance Issues:** Use the `sample_data` to add context to the `governance_issues_found`. If an issue flagged a hardcoded list of countries, does the live data contain other countries that were missed by the hardcoding? Report this discrepancy.
-        -   **Connect Errors to Causes:** If a validation query failed (e.g., 'table not found'), explicitly connect this back to the `metrics_details` that rely on that table and note the potential business impact.
-
-    2.  **INTERPRET, DON'T ASSUME:** An error or empty result could be due to permissions, ephemeral tables, or a prior AI mistake. Frame your findings as observations for investigation.
+    1.  **SYNTHESIZE AND COMPARE:** Your most important task is to find meaningful insights by comparing the inputs. Does the live data from the `sql_execution_summary` validate the assumptions in the `metrics_details`?
+    2.  **INTERPRET, DON'T ASSUME:** An error or empty result could be due to permissions or a prior AI mistake. Frame your findings as "observations" and "areas for investigation."
+    3.  **FOCUS ON PATTERNS:** Use the detailed metric inputs to identify anti-patterns like repeated hardcoded values or complex CASE statements that indicate a need for a lookup table.
 
     **INPUT DATA:**
     - Dashboard ID: {dashboard_id}
     - Dashboard Name: {dashboard_name}
     - Initial AI-Generated Dashboard Analysis: {original_dashboard_analysis}
     - Detailed Metric & Governance Data: {metrics_details}
-    - Actual Data from SQL Execution: {actual_sql_results}
+    - SQL Query Execution Summary: {sql_execution_summary}
 
     **OUTPUT REQUIREMENTS (JSON):**
     {{
@@ -133,17 +126,17 @@ def design_secondary_analysis_prompt():
       "coding_practice_review": [
         {{
             "metric_id": "The ID of the metric with the issue.",
-            "issue_type": "Hardcoded Value|Anti-Pattern|Data Mismatch",
+            "issue_type": "Hardcoded Logic|Anti-Pattern|Data Mismatch",
             "description": "A summary of the issue, synthesized with live data. Example: 'Metric uses a CASE statement to define 3 business channels, but live data shows 5 distinct channel values, indicating the logic is incomplete.'",
             "code_snippet": "The specific part of the sql_logic that demonstrates the issue.",
-            "recommendation": "A suggested fix, e.g., 'Replace CASE statement with a join to a governed channel lookup table to ensure all channels are captured.'"
+            "recommendation": "A suggested fix, e.g., 'Replace CASE statement with a join to a governed channel lookup table for maintainability.'"
         }}
       ],
       "investigation_points": [
           {{
-              "point_of_interest": "e.g., 'primary_analysis_sql query failed' or 'Metric `revenue_by_channel` data appears incomplete'",
-              "possible_causes": ["e.g., 'SQL syntax error from initial prompt', 'Service account lacks permissions', 'The CASE statement in the metric logic may be missing values found in the live data.'"],
-              "recommended_next_step": "e.g., 'Manually validate SQL syntax' or 'Cross-reference CASE statement values with `SELECT DISTINCT` on the source column.'"
+              "point_of_interest": "e.g., 'primary_analysis_sql query failed' or 'Metric X has unexpected NULL values'",
+              "possible_causes": ["e.g., 'SQL syntax error from initial prompt', 'Service account lacks permissions'"],
+              "recommended_next_step": "e.g., 'Manually validate SQL syntax' or 'Check service account IAM permissions.'"
           }}
       ]
     }}
@@ -249,64 +242,71 @@ def convert_batch_results_to_dataset(results):
     print("✅ Parsing complete.")
     return datasets
 
-
 def create_unified_dataset(datasets):
     """
-    Creates a unified dataset from the primary analysis outputs for a knowledge base.
+    Creates a unified dataset from the primary analysis outputs.
+    This version corrects the 'record_type' to align with downstream functions.
     """
     print("🔗 Creating unified dataset from analysis results...")
 
-    dashboards_df = datasets.get('dashboards', pd.DataFrame())
-    metrics_df = datasets.get('metrics', pd.DataFrame())
-    governance_issues_df = datasets.get('governance_issues', pd.DataFrame())
+    # Extract the dataframes from the primary output
+    dashboards_df = datasets.get('dashboards')
+    metrics_df = datasets.get('metrics')
+    governance_issues_df = datasets.get('governance_issues')
 
-    if dashboards_df.empty:
+    if dashboards_df is None or dashboards_df.empty:
         print("⚠️ No dashboard data found to create a unified dataset.")
         return pd.DataFrame()
 
     # Pre-aggregate governance issues for easier lookup
     if governance_issues_df is not None and not governance_issues_df.empty:
-        issue_summary = governance_issues_df.groupby('dashboard_id')['issue_type'].apply(
-            lambda x: x.value_counts().to_dict()
-        ).reset_index(name='issue_counts')
-        dashboards_df = pd.merge(dashboards_df, issue_summary, on='dashboard_id', how='left')
+        metric_issue_counts = governance_issues_df.groupby('dashboard_id').size().reset_index(name='total_governance_issues')
+        dashboards_df = pd.merge(dashboards_df, metric_issue_counts, on='dashboard_id', how='left')
+        dashboards_df['total_governance_issues'] = dashboards_df['total_governance_issues'].fillna(0).astype(int)
     else:
-        dashboards_df['issue_counts'] = None
-    
-    dashboards_df['issue_counts'] = dashboards_df['issue_counts'].fillna({})
+        dashboards_df['total_governance_issues'] = 0
+
 
     # Assemble records
     unified_records = []
     for _, dashboard in dashboards_df.iterrows():
-        context_parts = [
-            f"Dashboard Summary for '{dashboard.get('dashboard_name')}' (ID: {dashboard.get('dashboard_id')}).",
-            f"Business Domain: {dashboard.get('business_domain')}.",
-            f"Complexity Score: {dashboard.get('complexity_score')}/10. Consolidation Score: {dashboard.get('consolidation_score')}/10.",
-            f"Reasoning: {dashboard.get('score_reasoning')}",
-            f"Primary Data Sources: {dashboard.get('primary_data_sources')}.",
-        ]
-
-        # Add metrics summary to context
-        dashboard_metrics = metrics_df[metrics_df['dashboard_id'] == dashboard.get('dashboard_id')] if metrics_df is not None else pd.DataFrame()
-        if not dashboard_metrics.empty:
-            context_parts.append(f"Contains {len(dashboard_metrics)} metrics.")
-            for _, metric in dashboard_metrics.iterrows():
-                context_parts.append(f"- Metric: '{metric.get('metric_name')}' ({metric.get('metric_id')}). Description: {metric.get('business_description')}. Executable SQL: {metric.get('sql_logic')}")
+        dashboard_id = dashboard['dashboard_id']
         
+        dashboard_metrics = metrics_df[metrics_df['dashboard_id'] == dashboard_id] if metrics_df is not None else pd.DataFrame()
+
+        # Create a summary text block for the dashboard
+        metrics_summary_parts = []
+        if not dashboard_metrics.empty:
+            for _, metric in dashboard_metrics.head(5).iterrows(): # Summary of top 5 metrics
+                metrics_summary_parts.append(f"- {metric.get('metric_name', 'Unnamed Metric')}: {metric.get('business_description', 'No description.')}")
+        metrics_summary_text = "\\n".join(metrics_summary_parts) # Use \\n for literal newline in a string
+
+        # Build the unified record for the dashboard
         dashboard_record = {
-            'record_id': f"{dashboard.get('dashboard_id')}_summary",
-            'record_type': 'dashboard',
-            'dashboard_id': dashboard.get('dashboard_id'),
+            'record_id': f"{dashboard_id}_summary",
+            
+            # --- THE FIX ---
+            'record_type': 'dashboard_summary', # Correctly set to 'dashboard_summary'
+            # ---------------------
+            
+            'dashboard_id': dashboard_id,
             'dashboard_name': dashboard.get('dashboard_name'),
-            'full_context': " ".join(context_parts)
+            'business_domain': dashboard.get('business_domain'),
+            'complexity_score': dashboard.get('complexity_score'),
+            'consolidation_score': dashboard.get('consolidation_score'),
+            'total_metrics': len(dashboard_metrics),
+            'total_governance_issues': dashboard.get('total_governance_issues', 0),
+            'full_context': f"Dashboard '{dashboard.get('dashboard_name')}' is in the {dashboard.get('business_domain')} domain. "
+                            f"It has a complexity score of {dashboard.get('complexity_score')} and a consolidation score of {dashboard.get('consolidation_score')}. "
+                            f"It contains {len(dashboard_metrics)} metrics in total. Key metrics include:\\n{metrics_summary_text}"
         }
         unified_records.append(dashboard_record)
 
     unified_df = pd.DataFrame(unified_records)
-    print(f"✅ Unified dataset created successfully with {len(unified_df)} records.")
+    print(f"✅ Unified dataset created successfully with {len(unified_df)} dashboard summary records.")
     return unified_df
 
-
+    
 # ==============================================================================
 # 3. UTILITY & WORKFLOW FUNCTIONS
 # ==============================================================================
@@ -690,117 +690,75 @@ def run_gemini_batch_fast_slick(
         print("❌ Batch job failed or timed out")
         return None
 
-def run_complete_analysis(dataset_df, project=None, max_dashboards=5):
-    """Run complete analysis with all queries"""
+def run_complete_analysis(dataset_df, project, max_dashboards=None, timeout_seconds=20):
+    """
+    Orchestrates the execution of AI-generated SQL queries with a specified timeout.
+    """
     from google.cloud import bigquery
     
-    # Create BigQuery client
-    client = bigquery.Client(project=project) if project else bigquery.Client()
+    client = bigquery.Client(project=project)
+    print(f"Starting complete analysis for up to {max_dashboards or len(dataset_df)} dashboards with a {timeout_seconds}s timeout per query...")
     
-    print(f"Starting complete analysis for {min(max_dashboards or len(dataset_df), len(dataset_df))} dashboards...")
-    
-    # Execute all queries
-    execution_results = execute_dataset_analysis_queries(
-        dataset_df, 
+    # Execute all queries with the timeout
+    successful_results, execution_metadata_df = execute_dataset_analysis_queries(
+        dataset_df=dataset_df,
         client=client, 
         project=project, 
-        max_queries=max_dashboards
+        max_queries=max_dashboards,
+        timeout_seconds=timeout_seconds
     )
     
-    # Analyze performance
-    performance_analysis = analyze_query_performance(execution_results['metadata'])
+    # Analyze the performance based on the metadata
+    performance_analysis = analyze_query_performance(execution_metadata_df)
     
-    # Combine results by type
-    combined_results = combine_query_results_by_type(execution_results)
+    print(f"\n✅ SQL Execution Stage Complete.")
+    print(f"   - Attempted: {len(execution_metadata_df)} queries.")
+    print(f"   - Successful: {len(successful_results)} queries.")
     
     return {
-        'execution_results': execution_results,
-        'combined_results': combined_results,
-        'performance_analysis': performance_analysis
+        'successful_results': successful_results,
+        'execution_metadata': execution_metadata_df
     }
 
-def execute_dataset_analysis_queries(dataset_df, client=None, project=None, max_queries=None):
-    """Execute all SQL queries from the dataset analysis DataFrame"""
-    import pandas as pd
-    
-    if client is None:
-        from google.cloud import bigquery
-        client = bigquery.Client(project=project)
-    
-    # Query columns to process
+def execute_dataset_analysis_queries(dataset_df, client, project, max_queries=None, timeout_seconds=20):
+    """
+    Executes all SQL queries from the dataset analysis DataFrame with a timeout.
+    """
     query_columns = ['primary_analysis_sql', 'structure_sql', 'validation_sql', 'business_rules_sql']
-    
-    all_results = []
+    successful_results = []
     all_metadata = []
     
-    # Limit queries if specified
     rows_to_process = dataset_df.head(max_queries) if max_queries else dataset_df
-    
-    print(f"Executing queries for {len(rows_to_process)} dashboards...")
-    
+    print(f"Executing up to {len(rows_to_process) * len(query_columns)} queries for {len(rows_to_process)} dashboards...")
+
     for idx, row in rows_to_process.iterrows():
         dashboard_id = row['dashboard_id']
         response_id = row['response_id']
-        
         print(f"\n--- Processing Dashboard {idx + 1}/{len(rows_to_process)}: {dashboard_id[:8]}... ---")
-        
+
         for query_type in query_columns:
-            sql = row[query_type]
+            sql = row.get(query_type)
             
-            if pd.isna(sql) or sql.strip() == '':
-                print(f"⚠️ Skipping {query_type}: empty SQL")
+            if pd.isna(sql) or not sql.strip() or "query generation skipped" in sql.lower():
+                print(f"⚠️ Skipping '{query_type}': No valid SQL provided.")
                 continue
             
-            # Execute the query
+            # Pass the timeout to the execution function
             result = execute_sql_with_metadata(
                 sql=sql,
                 query_type=query_type,
                 dashboard_id=dashboard_id,
                 response_id=response_id,
                 client=client,
-                project=project
+                project=project,
+                timeout_seconds=timeout_seconds
             )
             
-            # Store results
-            if result['data'] is not None:
-                # Add linking columns to the data
-                result['data']['dashboard_id'] = dashboard_id
-                result['data']['response_id'] = response_id
-                result['data']['query_type'] = query_type
-                
-                all_results.append({
-                    'dashboard_id': dashboard_id,
-                    'response_id': response_id,
-                    'query_type': query_type,
-                    'data': result['data']
-                })
-            
             all_metadata.append(result['metadata'])
+            if result['data'] is not None and not result['data'].empty:
+                successful_results.append(result)
     
-    # Create metadata DataFrame
-    metadata_df = pd.DataFrame(all_metadata)
-    
-    print(f"\n=== EXECUTION SUMMARY ===")
-    print(f"Total queries attempted: {len(all_metadata)}")
-    print(f"Successful queries: {len([m for m in all_metadata if m['execution_status'] == 'success'])}")
-    print(f"Failed queries: {len([m for m in all_metadata if m['execution_status'] == 'failed'])}")
-    
-    if len(all_metadata) > 0:
-        avg_time = sum([m['execution_time_seconds'] for m in all_metadata]) / len(all_metadata)
-        total_rows = sum([m['row_count'] for m in all_metadata])
-        print(f"Average execution time: {avg_time:.2f}s")
-        print(f"Total rows returned: {total_rows}")
-    
-    return {
-        'results': all_results,
-        'metadata': metadata_df,
-        'summary': {
-            'total_queries': len(all_metadata),
-            'successful_queries': len([m for m in all_metadata if m['execution_status'] == 'success']),
-            'failed_queries': len([m for m in all_metadata if m['execution_status'] == 'failed']),
-            'total_rows_returned': sum([m['row_count'] for m in all_metadata])
-        }
-    }
+    return successful_results, pd.DataFrame(all_metadata)
 
 def execute_sql_with_metadata(sql, query_type, dashboard_id, response_id, client=None, project=None):
     """Execute a single SQL query and return results with metadata"""
@@ -922,14 +880,14 @@ def analyze_query_performance(metadata_df):
 
 def prepare_secondary_batch_input_robust(unified_dataset, datasets, df_bq_results):
     """
-    Prepares the batch input for the secondary prompt. This version is updated to
-    gather and inject detailed metric logic and governance issues from the primary
-    analysis, enabling a code practice review.
+    Prepares the batch input for the secondary prompt. This version correctly
+    uses all required inputs to gather dashboard summaries, detailed metrics,
+    and SQL execution results.
     """
     print("📊 PREPARING SECONDARY BATCH INPUT (ROBUST VERSION)")
     print("=" * 55)
 
-    # Helper function remains the same
+    # Helper function to make data JSON-serializable
     def clean_for_json(obj):
         if isinstance(obj, Decimal): return float(obj)
         if isinstance(obj, (date, datetime)): return obj.isoformat()
@@ -943,11 +901,13 @@ def prepare_secondary_batch_input_robust(unified_dataset, datasets, df_bq_result
     dashboard_summaries = unified_dataset[unified_dataset['record_type'] == 'dashboard_summary']
     metrics_df = datasets.get('metrics', pd.DataFrame())
     governance_issues_df = datasets.get('governance_issues', pd.DataFrame())
-    
-    print(f"Processing {len(dashboard_summaries)} dashboard summaries")
+
+    print(f"Processing {len(dashboard_summaries)} dashboard summaries...")
 
     secondary_batch_data = []
-    combined_results = df_bq_results.get('combined_results', {})
+    # Use the 'successful_results' and 'execution_metadata' from the BQ results
+    successful_results = df_bq_results.get('successful_results', [])
+    execution_metadata = df_bq_results.get('execution_metadata', pd.DataFrame())
 
     for _, dashboard in dashboard_summaries.iterrows():
         dashboard_id = dashboard['dashboard_id']
@@ -958,30 +918,29 @@ def prepare_secondary_batch_input_robust(unified_dataset, datasets, df_bq_result
             # 1. Prepare original dashboard analysis summary
             original_analysis = {k: v for k, v in dashboard.to_dict().items() if pd.notna(v)}
 
-            # 2. NEW: Prepare detailed metrics and governance data
+            # 2. Prepare detailed metrics and governance data from the 'datasets' object
             metrics_details = []
             if not metrics_df.empty:
                 dashboard_metrics = metrics_df[metrics_df['dashboard_id'] == dashboard_id]
                 for _, metric in dashboard_metrics.iterrows():
                     metric_detail = metric.to_dict()
-                    # Find and attach related governance issues
                     if not governance_issues_df.empty:
                         issues = governance_issues_df[governance_issues_df['metric_id'] == metric.get('metric_id')].to_dict('records')
                         metric_detail['governance_issues_found'] = issues
                     metrics_details.append(metric_detail)
 
-            # 3. Prepare BQ execution results
-            actual_results = {}
-            for query_type in ['primary_analysis_sql', 'structure_sql', 'validation_sql', 'business_rules_sql']:
-                if query_type in combined_results and combined_results.get(query_type) is not None:
-                    query_result_df = combined_results[query_type]
-                    dashboard_data = query_result_df[query_result_df['dashboard_id'] == dashboard_id]
-                    if not dashboard_data.empty:
-                        actual_results[query_type] = {'status': 'success', 'row_count': len(dashboard_data), 'sample_data': dashboard_data.head(2).to_dict('records')}
-                    else:
-                        actual_results[query_type] = {'status': 'no_data'}
-                else:
-                    actual_results[query_type] = {'status': 'not_available'}
+            # 3. Prepare the SQL execution summary
+            sql_execution_summary = []
+            if not execution_metadata.empty:
+                dashboard_metadata = execution_metadata[execution_metadata['dashboard_id'] == dashboard_id]
+                for _, meta_row in dashboard_metadata.iterrows():
+                    summary_item = {
+                        "query_type": meta_row.get('query_type'),
+                        "status": meta_row.get('execution_status'),
+                        "rows_returned": meta_row.get('row_count'),
+                        "error": meta_row.get('error_message')
+                    }
+                    sql_execution_summary.append(summary_item)
 
             # 4. Format the prompt
             secondary_prompt = design_secondary_analysis_prompt()
@@ -990,8 +949,8 @@ def prepare_secondary_batch_input_robust(unified_dataset, datasets, df_bq_result
                 dashboard_id=dashboard_id,
                 dashboard_name=dashboard_name,
                 original_dashboard_analysis=json.dumps(clean_for_json(original_analysis)),
-                metrics_details=json.dumps(clean_for_json(metrics_details)), # New input
-                actual_sql_results=json.dumps(clean_for_json(actual_results))
+                metrics_details=json.dumps(clean_for_json(metrics_details)),
+                sql_execution_summary=json.dumps(clean_for_json(sql_execution_summary))
             )
 
             secondary_batch_data.append({'content': formatted_prompt})
@@ -1003,7 +962,6 @@ def prepare_secondary_batch_input_robust(unified_dataset, datasets, df_bq_result
 
     print(f"\n✅ Successfully prepared {len(secondary_batch_data)} secondary analysis requests")
     return secondary_batch_data
-
 
 def combine_query_results_by_type(execution_results):
     """Combine all results by query type for easier analysis"""
