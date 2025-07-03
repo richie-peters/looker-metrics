@@ -13,6 +13,14 @@ from google.auth import default
 from google.cloud import aiplatform_v1beta1, bigquery, storage
 from vertexai.generative_models import GenerativeModel
 
+# Add this import at the top of your functions.py file
+import traceback
+# Ensure these imports are at the top of your functions.py file
+import json
+import pandas as pd
+import numpy as np
+from datetime import date, datetime
+from decimal import Decimal
 
 # ==============================================================================
 # 1. PROMPT DEFINITIONS
@@ -306,7 +314,7 @@ def create_unified_dataset(datasets):
     print(f"✅ Unified dataset created successfully with {len(unified_df)} dashboard summary records.")
     return unified_df
 
-    
+
 # ==============================================================================
 # 3. UTILITY & WORKFLOW FUNCTIONS
 # ==============================================================================
@@ -880,34 +888,37 @@ def analyze_query_performance(metadata_df):
 
 def prepare_secondary_batch_input_robust(unified_dataset, datasets, df_bq_results):
     """
-    Prepares the batch input for the secondary prompt. This version correctly
-    uses all required inputs to gather dashboard summaries, detailed metrics,
-    and SQL execution results.
+    Final corrected version. The clean_for_json helper now correctly
+    handles lists and dataframes to prevent the ambiguous truth value error.
     """
     print("📊 PREPARING SECONDARY BATCH INPUT (ROBUST VERSION)")
     print("=" * 55)
 
-    # Helper function to make data JSON-serializable
     def clean_for_json(obj):
+        """Helper function to make data JSON-serializable."""
+        # --- THE FIX ---
+        # Handle lists and dataframes first to avoid the ambiguous check
+        if isinstance(obj, list):
+            return [clean_for_json(item) for item in obj]
+        if isinstance(obj, pd.DataFrame):
+            return [clean_for_json(row) for row in obj.to_dict('records')]
+        # ---------------------
+        
         if isinstance(obj, Decimal): return float(obj)
         if isinstance(obj, (date, datetime)): return obj.isoformat()
         if pd.isna(obj) or obj is None: return None
         if isinstance(obj, np.generic): return obj.item()
         if isinstance(obj, dict): return {str(k): clean_for_json(v) for k, v in obj.items()}
-        if isinstance(obj, list): return [clean_for_json(item) for item in obj]
         return obj
 
-    # Extract source dataframes
     dashboard_summaries = unified_dataset[unified_dataset['record_type'] == 'dashboard_summary']
     metrics_df = datasets.get('metrics', pd.DataFrame())
     governance_issues_df = datasets.get('governance_issues', pd.DataFrame())
-
-    print(f"Processing {len(dashboard_summaries)} dashboard summaries...")
+    
+    print(f"Processing {len(dashboard_summaries)} dashboard summaries")
 
     secondary_batch_data = []
-    # Use the 'successful_results' and 'execution_metadata' from the BQ results
-    successful_results = df_bq_results.get('successful_results', [])
-    execution_metadata = df_bq_results.get('execution_metadata', pd.DataFrame())
+    combined_results = df_bq_results.get('combined_results', {})
 
     for _, dashboard in dashboard_summaries.iterrows():
         dashboard_id = dashboard['dashboard_id']
@@ -915,10 +926,8 @@ def prepare_secondary_batch_input_robust(unified_dataset, datasets, df_bq_result
         print(f"  Processing: {dashboard_name[:50]}...")
 
         try:
-            # 1. Prepare original dashboard analysis summary
             original_analysis = {k: v for k, v in dashboard.to_dict().items() if pd.notna(v)}
 
-            # 2. Prepare detailed metrics and governance data from the 'datasets' object
             metrics_details = []
             if not metrics_df.empty:
                 dashboard_metrics = metrics_df[metrics_df['dashboard_id'] == dashboard_id]
@@ -929,28 +938,31 @@ def prepare_secondary_batch_input_robust(unified_dataset, datasets, df_bq_result
                         metric_detail['governance_issues_found'] = issues
                     metrics_details.append(metric_detail)
 
-            # 3. Prepare the SQL execution summary
-            sql_execution_summary = []
-            if not execution_metadata.empty:
-                dashboard_metadata = execution_metadata[execution_metadata['dashboard_id'] == dashboard_id]
-                for _, meta_row in dashboard_metadata.iterrows():
-                    summary_item = {
-                        "query_type": meta_row.get('query_type'),
-                        "status": meta_row.get('execution_status'),
-                        "rows_returned": meta_row.get('row_count'),
-                        "error": meta_row.get('error_message')
-                    }
-                    sql_execution_summary.append(summary_item)
+            actual_results = {}
+            for query_type in ['primary_analysis_sql', 'structure_sql', 'validation_sql', 'business_rules_sql']:
+                query_result_df = combined_results.get(query_type)
+                if query_result_df is not None and not query_result_df.empty:
+                    dashboard_data_df = query_result_df[query_result_df['dashboard_id'] == dashboard_id]
+                    if not dashboard_data_df.empty:
+                        actual_results[query_type] = {'status': 'success', 'row_count': len(dashboard_data_df), 'sample_data': dashboard_data_df.head(2).to_dict('records')}
+                    else:
+                        actual_results[query_type] = {'status': 'no_data'}
+                else:
+                    actual_results[query_type] = {'status': 'not_available'}
 
-            # 4. Format the prompt
             secondary_prompt = design_secondary_analysis_prompt()
             
+            # Clean all data before serialization
+            cleaned_original_analysis = clean_for_json(original_analysis)
+            cleaned_metrics_details = clean_for_json(metrics_details)
+            cleaned_sql_results = clean_for_json(actual_results)
+
             formatted_prompt = secondary_prompt.format(
                 dashboard_id=dashboard_id,
                 dashboard_name=dashboard_name,
-                original_dashboard_analysis=json.dumps(clean_for_json(original_analysis)),
-                metrics_details=json.dumps(clean_for_json(metrics_details)),
-                sql_execution_summary=json.dumps(clean_for_json(sql_execution_summary))
+                original_dashboard_analysis=json.dumps(cleaned_original_analysis),
+                metrics_details=json.dumps(cleaned_metrics_details),
+                sql_execution_summary=json.dumps(cleaned_sql_results)
             )
 
             secondary_batch_data.append({'content': formatted_prompt})
@@ -958,6 +970,7 @@ def prepare_secondary_batch_input_robust(unified_dataset, datasets, df_bq_result
 
         except Exception as e:
             print(f"    ⚠️ Error preparing {dashboard_id}: {e}")
+            traceback.print_exc()
             continue
 
     print(f"\n✅ Successfully prepared {len(secondary_batch_data)} secondary analysis requests")
@@ -1385,3 +1398,124 @@ def fix_github_authentication():
     except Exception as e:
         print(f"❌ Error setting up authentication: {e}")
         return False
+
+def extract_secondary_results_to_datasets(secondary_results):
+    """
+    Extracts the results from the secondary analysis batch job into structured
+    DataFrames, aligned with the latest secondary prompt schema.
+    """
+    print("🔍 EXTRACTING SECONDARY ANALYSIS RESULTS")
+    print("=" * 50)
+
+    # Initialize lists to hold the structured data
+    consolidation_analysis_data = []
+    coding_practice_review_data = []
+    investigation_points_data = []
+
+    for response_id, result in enumerate(secondary_results):
+        try:
+            raw_text = result.get('response', {}).get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
+            if not raw_text:
+                continue
+
+            json_text_match = re.search(r'```json\s*(\{.*?\})\s*```', raw_text, re.DOTALL)
+            if not json_text_match:
+                json_text_match = re.search(r'(\{.*?\})', raw_text, re.DOTALL)
+            
+            if not json_text_match:
+                continue
+                
+            parsed_response = json.loads(json_text_match.group(1))
+            
+            # Extract the main analysis summary
+            analysis_summary = parsed_response.get('consolidation_analysis')
+            if analysis_summary:
+                analysis_summary['response_id'] = response_id
+                consolidation_analysis_data.append(analysis_summary)
+                dashboard_id = analysis_summary.get('dashboard_id') # Get dashboard_id for linking
+
+                # Extract the list of coding practice issues
+                if 'coding_practice_review' in parsed_response:
+                    for issue in parsed_response['coding_practice_review']:
+                        issue['response_id'] = response_id
+                        issue['dashboard_id'] = dashboard_id
+                        coding_practice_review_data.append(issue)
+                
+                # Extract the list of investigation points
+                if 'investigation_points' in parsed_response:
+                    for point in parsed_response['investigation_points']:
+                        point['response_id'] = response_id
+                        point['dashboard_id'] = dashboard_id
+                        investigation_points_data.append(point)
+
+        except Exception as e:
+            print(f"✗ Error processing secondary response {response_id}: {e}")
+
+    # Create the final datasets
+    datasets = {
+        'consolidation_analysis': pd.DataFrame(consolidation_analysis_data),
+        'coding_practice_review': pd.DataFrame(coding_practice_review_data),
+        'investigation_points': pd.DataFrame(investigation_points_data),
+    }
+
+    print("\n✅ Secondary extraction complete:")
+    for name, df in datasets.items():
+        print(f"  - Created '{name}' with {len(df)} rows.")
+        
+    return datasets
+
+def analyze_secondary_results_summary(secondary_datasets):
+    """
+    Provides a quick summary analysis of the secondary analysis results.
+    """
+    print("\n" + "="*60)
+    print("📊 SECONDARY ANALYSIS RESULTS SUMMARY")
+    print("="*60)
+
+    if 'consolidation_analysis' in secondary_datasets and not secondary_datasets['consolidation_analysis'].empty:
+        consolidation_df = secondary_datasets['consolidation_analysis']
+        print(f"\n📋 CONSOLIDATION ANALYSIS: {len(consolidation_df)} dashboards reviewed")
+        
+        if 'consolidation_priority' in consolidation_df.columns:
+            print("\nConsolidation Priority:")
+            print(consolidation_df['consolidation_priority'].value_counts().to_string())
+        
+        if 'data_verifiability_score' in consolidation_df.columns:
+            print(f"\nData Verifiability Score (1-10):")
+            print(f"  Average: {consolidation_df['data_verifiability_score'].mean():.1f}")
+
+    if 'coding_practice_review' in secondary_datasets and not secondary_datasets['coding_practice_review'].empty:
+        coding_review_df = secondary_datasets['coding_practice_review']
+        print(f"\n\n💻 CODING PRACTICE REVIEW: {len(coding_review_df)} issues identified")
+        
+        if 'issue_type' in coding_review_df.columns:
+            print("\nIssue Types Found:")
+            print(coding_review_df['issue_type'].value_counts().to_string())
+    
+    print("\n" + "="*60)
+
+
+def save_secondary_datasets_to_csv(secondary_datasets, output_folder="./data/secondary/"):
+    """
+    Saves the secondary analysis datasets to a dedicated 'secondary' folder.
+    """
+    os.makedirs(output_folder, exist_ok=True)
+    
+    if not isinstance(secondary_datasets, dict) or not secondary_datasets:
+        print("⚠️ No secondary datasets provided to save.")
+        return False
+
+    print(f"\n💾 Saving {len(secondary_datasets)} secondary dataset(s) to '{output_folder}'...")
+    try:
+        for name, df in secondary_datasets.items():
+            if df is not None and not df.empty:
+                output_path = os.path.join(output_folder, f"secondary_analysis_{name}.csv")
+                df.to_csv(output_path, index=False)
+                print(f"✓ Saved {name}: {output_path} ({len(df)} rows)")
+            else:
+                print(f"⚠️ Skipped saving '{name}': The dataset was empty.")
+        return True
+    except Exception as e:
+        print(f"✗ Failed to save secondary datasets: {e}")
+        return False
+
