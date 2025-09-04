@@ -25,6 +25,16 @@ from decimal import Decimal
 # ==============================================================================
 # 1. PROMPT DEFINITIONS
 # ==============================================================================
+# ==============================================================================
+# 1. PROMPT DEFINITIONS (UPDATED)
+# ==============================================================================
+# ==============================================================================
+# 1. PROMPT DEFINITIONS (UPDATED)
+# ==============================================================================
+
+# ==============================================================================
+# 1. PROMPT DEFINITIONS (UPDATED)
+# ==============================================================================
 
 LOOKER_ANALYSIS_PROMPT = """
 Analyze these Looker Studio dashboard SQL queries and extract comprehensive metrics information.
@@ -151,18 +161,26 @@ def design_secondary_analysis_prompt():
     """
     return secondary_prompt
 
-# This is the final, highly specific prompt.
+# This is the final, highly specific prompt. (UPDATED)
 METRIC_CONSOLIDATION_PROMPT = """
-Act as an expert data architect. Your task is to analyze a list of metrics from various Looker Studio dashboards to find opportunities for consolidation. You must group metrics that share the same business purpose, even if their SQL implementations are different (e.g., two different ways of calculating ARPU).
+Act as an expert data architect. Your task is to analyze a comprehensive list of metrics from an enterprise reporting suite to find opportunities for consolidation. You must group metrics that share the same business purpose, even if their SQL implementations are slightly different.
 
 **CRITICAL INSTRUCTIONS:**
-1.  **Only report on meaningful consolidation opportunities.** If you do not find any groups of metrics that are duplicated or semantically similar, return an empty list.
+1.  **Only report on meaningful consolidation opportunities.** If you do not find any groups of metrics that are duplicated or semantically similar, return an an empty list.
 2.  Your entire output MUST be a single JSON object with one key: "consolidation_details".
 3.  This key must contain a flat list of metric objects. DO NOT nest the objects.
 4.  For each group you identify, repeat the 'group_' level information for every metric that belongs to that group.
+5.  **Be concise and highly specific.** Focus on the technical and logical differences between metrics. Do not provide a general summary.
+    - Specifically, look for and describe differences in:
+        - **Date/Time Logic**: E.g., one uses `WEEK(MONDAY)` while another uses `WEEK(SUNDAY)`.
+        - **Calculations**: E.g., `revenue / users` vs. `revenue / (users - returns)`.
+        - **Hardcoded values**: E.g., one uses a `CASE` statement with 8 categories, another case statement has a 9th.
+        - **Filters/Conditions**: E.g., one filters for 'active' users, another filters for 'active' and 'pending'.
 
 **INPUT DATA:**
-- A JSON list of metric objects: {all_metrics_json}
+- A JSON list of ALL metric objects. The object contains the following fields: `metric_id`, `metric_name`, `metric_sql_core`, `dashboard_name`, `gcp_project_name`, `dataset_name`, and `table_name`.
+
+{all_metrics_json}
 
 **OUTPUT REQUIREMENTS (JSON Schema):**
 Return a flat list of objects. Each object in the list must conform to the following structure:
@@ -170,16 +188,14 @@ Return a flat list of objects. Each object in the list must conform to the follo
   "consolidation_id": "A unique identifier for the group (e.g., 'group_arpu').",
   "group_business_explanation": "A high-level, business-friendly summary of what this consolidated metric represents.",
   "group_variance_summary": "An overall summary of how and why the metrics in this group differ from each other.",
-  "group_representative_sql": "The single best example of the SQL logic for this group.",
   "metric_id": "The unique ID of this specific metric.",
   "metric_name": "The name of this specific metric as it appears in its dashboard.",
   "dashboard_name": "The name of the dashboard where this metric is found.",
-  "metric_similarity_percentage": "A score (0-100) indicating how similar this metric is to the representative SQL.",
-  "metric_specific_difference": "A precise, technical explanation of how THIS INDIVIDUAL metric's logic differs from the representative SQL. (e.g., 'This ARPU calculation includes subscription revenue, while others do not.').",
-  "metric_full_sql": "The complete SQL logic for this individual metric."
+  "metric_similarity_percentage": "A score (0-100) indicating how similar this metric is to the other metrics in its group.",
+  "metric_specific_difference": "A precise, technical explanation of how THIS INDIVIDUAL metric's logic differs from the rest of the group. (e.g., 'This ARPU calculation includes subscription revenue, while others do not.')."
 }}
 """
-
+# --- Start: Single-Batch Consolidation Analysis (Corrected) ---
 
 # ==============================================================================
 # 2. DATA PREPARATION AND PARSING FUNCTIONS
@@ -1565,73 +1581,87 @@ def save_secondary_datasets_to_csv(secondary_datasets, output_folder="./data/sec
 
 # --- Start: Replacement code for functions.py ---
 
-# This is the final function to parse the flat structure and save one file.
 def run_metric_consolidation_analysis(project, input_gcs_uri, output_gcs_uri, model_name):
     """
-    Runs the final consolidation analysis to produce a single, detailed, flat CSV file
-    identifying metrics with the same business purpose but different implementations.
+    Runs a single-batch consolidation analysis that provides all metrics to the
+    model at once, leveraging the new, concise 'metric_sql_core' field.
     """
-    print("\n--- Starting Final Metric Consolidation Analysis ---")
-    
-    # 1. Read and prepare the data (no changes here)
+    print("\n--- Starting Single-Batch Metric Consolidation Analysis ---")
+
+    # 1. Read and prepare the data
     try:
         metrics_df = pd.read_csv("./data/looker_analysis_metrics.csv")
         dashboards_df = pd.read_csv("./data/looker_analysis_dashboards.csv")
-        metrics_df = pd.merge(metrics_df, dashboards_df[['dashboard_id', 'dashboard_name']], on='dashboard_id', how='left')
+        
+        # Merge metrics with dashboard data to get the business domain
+        metrics_df = pd.merge(metrics_df, dashboards_df[['dashboard_id', 'dashboard_name', 'business_domain']], on='dashboard_id', how='left')
+        
+        # Ensure we have the required columns from the initial analysis
+        required_cols = ['metric_id', 'metric_name', 'sql_logic', 'metric_sql_core', 'business_description', 'dashboard_id', 'dashboard_name', 'gcp_project_name', 'dataset_name', 'table_name', 'business_domain']
+        for col in required_cols:
+            if col not in metrics_df.columns:
+                print(f"✗ Missing required column '{col}'. Please ensure your initial analysis output includes this field.")
+                return None
+        
         if metrics_df.empty:
             print(" Metrics dataset is empty. Skipping consolidation analysis.")
             return None
+            
         print(f"✓ Loaded {len(metrics_df)} metrics for analysis.")
+    
     except FileNotFoundError:
-        print("✗ Could not find 'looker_analysis_metrics.csv' or 'looker_analysis_dashboards.csv'. Skipping consolidation analysis.")
+        print("✗ Could not find necessary CSV files. Please ensure 'looker_analysis_metrics.csv' and 'looker_analysis_dashboards.csv' exist.")
         return None
 
-    # 2. Prepare and run the Gemini analysis (no changes here)
-    metrics_to_analyze = metrics_df[['metric_id', 'metric_name', 'sql_logic', 'dashboard_id', 'dashboard_name']].to_dict('records')
+    # 2. Prepare the single, consolidated input payload for the model
+    print("\n--- Preparing a single batch input for Gemini ---")
+    
+    # CORRECTED: Only send the most essential fields to prevent token overflow.
+    metrics_to_analyze = metrics_df[['metric_id', 'metric_name', 'metric_sql_core', 'dashboard_name', 'gcp_project_name', 'dataset_name', 'table_name']].to_dict('records')
+    
     all_metrics_json = json.dumps(metrics_to_analyze, indent=2)
+
     formatted_prompt = METRIC_CONSOLIDATION_PROMPT.format(all_metrics_json=all_metrics_json)
     
-    print("🚀 Calling Gemini for final consolidation analysis...")
-    results = run_gemini_batch_fast_slick(
-        requests=[{'content': formatted_prompt}],
+    consolidation_requests = [{'content': formatted_prompt}]
+    
+    # 3. Run the single batch job
+    consolidation_results = run_gemini_batch_fast_slick(
+        requests=consolidation_requests,
         project=project,
-        display_name="looker-metric-consolidation-final",
-        input_gcs_uri=input_gcs_uri.replace('.jsonl', '_consolidation_final.jsonl'),
-        output_gcs_uri=output_gcs_uri.rstrip('/') + '_consolidation_final/',
+        display_name="looker-consolidation-full-batch",
+        input_gcs_uri=input_gcs_uri.replace('.jsonl', '_full_batch.jsonl'),
+        output_gcs_uri=output_gcs_uri.rstrip('/') + '_full_batch/',
         model_name=model_name
     )
-
-    if not results:
-        print("✗ Metric consolidation analysis failed.")
+    
+    if not consolidation_results:
+        print("✗ Full batch consolidation analysis failed.")
         return None
         
-    # 3. Parse the new, flat JSON structure and save the single output file
+    # 4. Parse the single response and save
     try:
-        raw_text = results[0].get('response', {}).get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
+        raw_text = consolidation_results[0].get('response', {}).get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
         json_text_match = re.search(r'```json\s*(\{.*?\})\s*```', raw_text, re.DOTALL)
         if not json_text_match:
             json_text_match = re.search(r'(\{.*?\})', raw_text, re.DOTALL)
         
         parsed_response = json.loads(json_text_match.group(1))
         
-        # The AI should return a flat list directly under the 'consolidation_details' key
         consolidation_details = parsed_response.get('consolidation_details', [])
         
         if not consolidation_details:
             print("✅ Analysis complete. No significant consolidation opportunities were identified by the AI.")
             return None
 
-        # Create the final DataFrame from the flat list
         details_df = pd.DataFrame(consolidation_details)
         
-        # Define the output path for the single, detailed file
         output_folder = "./data/secondary/"
         os.makedirs(output_folder, exist_ok=True)
         details_path = os.path.join(output_folder, "secondary_analysis_consolidation_details.csv")
         
         details_df.to_csv(details_path, index=False)
         
-        # Report the final statistics
         group_count = details_df['consolidation_id'].nunique()
         metric_count = len(details_df)
         print(f"\n✓ Successfully identified {metric_count} metrics for consolidation into {group_count} unique groups.")
@@ -1642,4 +1672,5 @@ def run_metric_consolidation_analysis(project, input_gcs_uri, output_gcs_uri, mo
     except Exception as e:
         print(f"✗ Failed to parse final consolidation results: {e}")
         return None
-# --- End: Replacement code for functions.py ---
+
+# --- End: Single-Batch Consolidation Analysis (Corrected) ---
