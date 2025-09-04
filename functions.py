@@ -151,6 +151,36 @@ def design_secondary_analysis_prompt():
     """
     return secondary_prompt
 
+# This is the final, highly specific prompt.
+METRIC_CONSOLIDATION_PROMPT = """
+Act as an expert data architect. Your task is to analyze a list of metrics from various Looker Studio dashboards to find opportunities for consolidation. You must group metrics that share the same business purpose, even if their SQL implementations are different (e.g., two different ways of calculating ARPU).
+
+**CRITICAL INSTRUCTIONS:**
+1.  **Only report on meaningful consolidation opportunities.** If you do not find any groups of metrics that are duplicated or semantically similar, return an empty list.
+2.  Your entire output MUST be a single JSON object with one key: "consolidation_details".
+3.  This key must contain a flat list of metric objects. DO NOT nest the objects.
+4.  For each group you identify, repeat the 'group_' level information for every metric that belongs to that group.
+
+**INPUT DATA:**
+- A JSON list of metric objects: {all_metrics_json}
+
+**OUTPUT REQUIREMENTS (JSON Schema):**
+Return a flat list of objects. Each object in the list must conform to the following structure:
+{{
+  "consolidation_id": "A unique identifier for the group (e.g., 'group_arpu').",
+  "group_business_explanation": "A high-level, business-friendly summary of what this consolidated metric represents.",
+  "group_variance_summary": "An overall summary of how and why the metrics in this group differ from each other.",
+  "group_representative_sql": "The single best example of the SQL logic for this group.",
+  "metric_id": "The unique ID of this specific metric.",
+  "metric_name": "The name of this specific metric as it appears in its dashboard.",
+  "dashboard_name": "The name of the dashboard where this metric is found.",
+  "metric_similarity_percentage": "A score (0-100) indicating how similar this metric is to the representative SQL.",
+  "metric_specific_difference": "A precise, technical explanation of how THIS INDIVIDUAL metric's logic differs from the representative SQL. (e.g., 'This ARPU calculation includes subscription revenue, while others do not.').",
+  "metric_full_sql": "The complete SQL logic for this individual metric."
+}}
+"""
+
+
 # ==============================================================================
 # 2. DATA PREPARATION AND PARSING FUNCTIONS
 # ==============================================================================
@@ -768,21 +798,27 @@ def execute_dataset_analysis_queries(dataset_df, client, project, max_queries=No
     
     return successful_results, pd.DataFrame(all_metadata)
 
-def execute_sql_with_metadata(sql, query_type, dashboard_id, response_id, client=None, project=None):
-    """Execute a single SQL query and return results with metadata"""
+def execute_sql_with_metadata(sql, query_type, dashboard_id, response_id, client=None, project=None, timeout_seconds=60):
+    """Execute a single SQL query and return results with metadata, including a job timeout."""
     import time
     from datetime import datetime
+    from google.cloud import bigquery
     
     if client is None:
-        from google.cloud import bigquery
         client = bigquery.Client(project=project)
+    
+    # Configure the query job with a timeout
+    job_config = bigquery.QueryJobConfig(
+        # The timeout is in milliseconds
+        job_timeout_ms=timeout_seconds * 1000
+    )
     
     start_time = time.time()
     
     try:
-        # Execute the query
-        job = client.query(sql)
-        results = job.result()
+        # Execute the query with the specified job configuration
+        job = client.query(sql, job_config=job_config)
+        results = job.result()  # Wait for the job to complete
         
         # Convert to DataFrame
         df = results.to_dataframe()
@@ -885,25 +921,20 @@ def analyze_query_performance(metadata_df):
         'performance_stats': time_stats if not successful_queries.empty else None,
         'failed_queries': failed_queries
     }
-
 def prepare_secondary_batch_input_robust(unified_dataset, datasets, df_bq_results):
     """
-    Final corrected version. The clean_for_json helper now correctly
-    handles lists and dataframes to prevent the ambiguous truth value error.
+    Prepares the batch input for the secondary, deeper analysis, combining
+    the initial AI analysis with the results from the live SQL query executions.
     """
     print("📊 PREPARING SECONDARY BATCH INPUT (ROBUST VERSION)")
     print("=" * 55)
 
     def clean_for_json(obj):
         """Helper function to make data JSON-serializable."""
-        # --- THE FIX ---
-        # Handle lists and dataframes first to avoid the ambiguous check
         if isinstance(obj, list):
             return [clean_for_json(item) for item in obj]
         if isinstance(obj, pd.DataFrame):
             return [clean_for_json(row) for row in obj.to_dict('records')]
-        # ---------------------
-        
         if isinstance(obj, Decimal): return float(obj)
         if isinstance(obj, (date, datetime)): return obj.isoformat()
         if pd.isna(obj) or obj is None: return None
@@ -913,12 +944,14 @@ def prepare_secondary_batch_input_robust(unified_dataset, datasets, df_bq_result
 
     dashboard_summaries = unified_dataset[unified_dataset['record_type'] == 'dashboard_summary']
     metrics_df = datasets.get('metrics', pd.DataFrame())
-    governance_issues_df = datasets.get('governance_issues', pd.DataFrame())
     
-    print(f"Processing {len(dashboard_summaries)} dashboard summaries")
+    print(f"Processing {len(dashboard_summaries)} dashboard summaries for secondary analysis")
 
     secondary_batch_data = []
-    combined_results = df_bq_results.get('combined_results', {})
+    
+    # Extract metadata and successful results from the BQ execution dictionary
+    execution_metadata_df = df_bq_results.get('execution_metadata', pd.DataFrame())
+    successful_results = df_bq_results.get('successful_results', [])
 
     for _, dashboard in dashboard_summaries.iterrows():
         dashboard_id = dashboard['dashboard_id']
@@ -928,53 +961,63 @@ def prepare_secondary_batch_input_robust(unified_dataset, datasets, df_bq_result
         try:
             original_analysis = {k: v for k, v in dashboard.to_dict().items() if pd.notna(v)}
 
+            # Get metric details for this specific dashboard
             metrics_details = []
             if not metrics_df.empty:
                 dashboard_metrics = metrics_df[metrics_df['dashboard_id'] == dashboard_id]
-                for _, metric in dashboard_metrics.iterrows():
-                    metric_detail = metric.to_dict()
-                    if not governance_issues_df.empty:
-                        issues = governance_issues_df[governance_issues_df['metric_id'] == metric.get('metric_id')].to_dict('records')
-                        metric_detail['governance_issues_found'] = issues
-                    metrics_details.append(metric_detail)
+                metrics_details = dashboard_metrics.to_dict('records')
 
-            actual_results = {}
-            for query_type in ['primary_analysis_sql', 'structure_sql', 'validation_sql', 'business_rules_sql']:
-                query_result_df = combined_results.get(query_type)
-                if query_result_df is not None and not query_result_df.empty:
-                    dashboard_data_df = query_result_df[query_result_df['dashboard_id'] == dashboard_id]
-                    if not dashboard_data_df.empty:
-                        actual_results[query_type] = {'status': 'success', 'row_count': len(dashboard_data_df), 'sample_data': dashboard_data_df.head(2).to_dict('records')}
-                    else:
-                        actual_results[query_type] = {'status': 'no_data'}
-                else:
-                    actual_results[query_type] = {'status': 'not_available'}
+            # Consolidate the results of the executed SQL queries for this dashboard
+            sql_execution_summary = {}
+            if not execution_metadata_df.empty:
+                dashboard_metadata = execution_metadata_df[execution_metadata_df['dashboard_id'] == dashboard_id]
+                for _, meta_row in dashboard_metadata.iterrows():
+                    query_type = meta_row['query_type']
+                    status = meta_row['execution_status']
+                    error = meta_row.get('error_message')
+                    
+                    summary = {'status': status}
+                    if error:
+                        summary['error'] = error
+
+                    # Find the actual data for successful queries
+                    if status == 'success':
+                        for res in successful_results:
+                            # Match using response_id and query_type as a composite key
+                            if res['metadata']['response_id'] == meta_row['response_id'] and res['metadata']['query_type'] == query_type:
+                                sample_data = res.get('data')
+                                if sample_data is not None:
+                                    summary['sample_data'] = sample_data.head(3).to_dict('records')
+                                break
+                    
+                    sql_execution_summary[query_type] = summary
 
             secondary_prompt = design_secondary_analysis_prompt()
             
             # Clean all data before serialization
             cleaned_original_analysis = clean_for_json(original_analysis)
             cleaned_metrics_details = clean_for_json(metrics_details)
-            cleaned_sql_results = clean_for_json(actual_results)
+            cleaned_sql_results = clean_for_json(sql_execution_summary)
 
             formatted_prompt = secondary_prompt.format(
                 dashboard_id=dashboard_id,
                 dashboard_name=dashboard_name,
-                original_dashboard_analysis=json.dumps(cleaned_original_analysis),
-                metrics_details=json.dumps(cleaned_metrics_details),
-                sql_execution_summary=json.dumps(cleaned_sql_results)
+                original_dashboard_analysis=json.dumps(cleaned_original_analysis, indent=2),
+                metrics_details=json.dumps(cleaned_metrics_details, indent=2),
+                sql_execution_summary=json.dumps(cleaned_sql_results, indent=2)
             )
 
             secondary_batch_data.append({'content': formatted_prompt})
-            print(f"    ✅ Successfully prepared request")
+            print(f"    ✅ Successfully prepared secondary request for {dashboard_name[:50]}")
 
         except Exception as e:
-            print(f"    ⚠️ Error preparing {dashboard_id}: {e}")
+            print(f"    ⚠️ Error preparing secondary request for {dashboard_id}: {e}")
             traceback.print_exc()
             continue
 
     print(f"\n✅ Successfully prepared {len(secondary_batch_data)} secondary analysis requests")
     return secondary_batch_data
+
 
 def combine_query_results_by_type(execution_results):
     """Combine all results by query type for easier analysis"""
@@ -1398,16 +1441,16 @@ def fix_github_authentication():
     except Exception as e:
         print(f"❌ Error setting up authentication: {e}")
         return False
+# --- Start: Replacement code for functions.py ---
 
 def extract_secondary_results_to_datasets(secondary_results):
     """
     Extracts the results from the secondary analysis batch job into structured
-    DataFrames, aligned with the latest secondary prompt schema.
+    DataFrames, aligned with the secondary prompt schema.
     """
-    print("🔍 EXTRACTING SECONDARY ANALYSIS RESULTS")
+    print("\n🔍 EXTRACTING SECONDARY ANALYSIS RESULTS")
     print("=" * 50)
 
-    # Initialize lists to hold the structured data
     consolidation_analysis_data = []
     coding_practice_review_data = []
     investigation_points_data = []
@@ -1418,6 +1461,7 @@ def extract_secondary_results_to_datasets(secondary_results):
             if not raw_text:
                 continue
 
+            # FIX 1: Made the regex non-greedy (.*?) to better handle malformed JSON
             json_text_match = re.search(r'```json\s*(\{.*?\})\s*```', raw_text, re.DOTALL)
             if not json_text_match:
                 json_text_match = re.search(r'(\{.*?\})', raw_text, re.DOTALL)
@@ -1427,31 +1471,25 @@ def extract_secondary_results_to_datasets(secondary_results):
                 
             parsed_response = json.loads(json_text_match.group(1))
             
-            # Extract the main analysis summary
             analysis_summary = parsed_response.get('consolidation_analysis')
             if analysis_summary:
+                dashboard_id = analysis_summary.get('dashboard_id')
                 analysis_summary['response_id'] = response_id
                 consolidation_analysis_data.append(analysis_summary)
-                dashboard_id = analysis_summary.get('dashboard_id') # Get dashboard_id for linking
 
-                # Extract the list of coding practice issues
                 if 'coding_practice_review' in parsed_response:
                     for issue in parsed_response['coding_practice_review']:
-                        issue['response_id'] = response_id
-                        issue['dashboard_id'] = dashboard_id
+                        issue.update({'response_id': response_id, 'dashboard_id': dashboard_id})
                         coding_practice_review_data.append(issue)
                 
-                # Extract the list of investigation points
                 if 'investigation_points' in parsed_response:
                     for point in parsed_response['investigation_points']:
-                        point['response_id'] = response_id
-                        point['dashboard_id'] = dashboard_id
+                        point.update({'response_id': response_id, 'dashboard_id': dashboard_id})
                         investigation_points_data.append(point)
 
         except Exception as e:
             print(f"✗ Error processing secondary response {response_id}: {e}")
 
-    # Create the final datasets
     datasets = {
         'consolidation_analysis': pd.DataFrame(consolidation_analysis_data),
         'coding_practice_review': pd.DataFrame(coding_practice_review_data),
@@ -1460,9 +1498,13 @@ def extract_secondary_results_to_datasets(secondary_results):
 
     print("\n✅ Secondary extraction complete:")
     for name, df in datasets.items():
-        print(f"  - Created '{name}' with {len(df)} rows.")
-        
+        if not df.empty:
+            print(f"  - Created '{name}' with {len(df)} rows.")
+    
+    # FIX 2: Corrected the return variable from 'dataset' to 'datasets'
     return datasets
+
+# --- End: Replacement code for functions.py ---
 
 def analyze_secondary_results_summary(secondary_datasets):
     """
@@ -1519,3 +1561,85 @@ def save_secondary_datasets_to_csv(secondary_datasets, output_folder="./data/sec
         print(f"✗ Failed to save secondary datasets: {e}")
         return False
 
+
+
+# --- Start: Replacement code for functions.py ---
+
+# This is the final function to parse the flat structure and save one file.
+def run_metric_consolidation_analysis(project, input_gcs_uri, output_gcs_uri, model_name):
+    """
+    Runs the final consolidation analysis to produce a single, detailed, flat CSV file
+    identifying metrics with the same business purpose but different implementations.
+    """
+    print("\n--- Starting Final Metric Consolidation Analysis ---")
+    
+    # 1. Read and prepare the data (no changes here)
+    try:
+        metrics_df = pd.read_csv("./data/looker_analysis_metrics.csv")
+        dashboards_df = pd.read_csv("./data/looker_analysis_dashboards.csv")
+        metrics_df = pd.merge(metrics_df, dashboards_df[['dashboard_id', 'dashboard_name']], on='dashboard_id', how='left')
+        if metrics_df.empty:
+            print(" Metrics dataset is empty. Skipping consolidation analysis.")
+            return None
+        print(f"✓ Loaded {len(metrics_df)} metrics for analysis.")
+    except FileNotFoundError:
+        print("✗ Could not find 'looker_analysis_metrics.csv' or 'looker_analysis_dashboards.csv'. Skipping consolidation analysis.")
+        return None
+
+    # 2. Prepare and run the Gemini analysis (no changes here)
+    metrics_to_analyze = metrics_df[['metric_id', 'metric_name', 'sql_logic', 'dashboard_id', 'dashboard_name']].to_dict('records')
+    all_metrics_json = json.dumps(metrics_to_analyze, indent=2)
+    formatted_prompt = METRIC_CONSOLIDATION_PROMPT.format(all_metrics_json=all_metrics_json)
+    
+    print("🚀 Calling Gemini for final consolidation analysis...")
+    results = run_gemini_batch_fast_slick(
+        requests=[{'content': formatted_prompt}],
+        project=project,
+        display_name="looker-metric-consolidation-final",
+        input_gcs_uri=input_gcs_uri.replace('.jsonl', '_consolidation_final.jsonl'),
+        output_gcs_uri=output_gcs_uri.rstrip('/') + '_consolidation_final/',
+        model_name=model_name
+    )
+
+    if not results:
+        print("✗ Metric consolidation analysis failed.")
+        return None
+        
+    # 3. Parse the new, flat JSON structure and save the single output file
+    try:
+        raw_text = results[0].get('response', {}).get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
+        json_text_match = re.search(r'```json\s*(\{.*?\})\s*```', raw_text, re.DOTALL)
+        if not json_text_match:
+            json_text_match = re.search(r'(\{.*?\})', raw_text, re.DOTALL)
+        
+        parsed_response = json.loads(json_text_match.group(1))
+        
+        # The AI should return a flat list directly under the 'consolidation_details' key
+        consolidation_details = parsed_response.get('consolidation_details', [])
+        
+        if not consolidation_details:
+            print("✅ Analysis complete. No significant consolidation opportunities were identified by the AI.")
+            return None
+
+        # Create the final DataFrame from the flat list
+        details_df = pd.DataFrame(consolidation_details)
+        
+        # Define the output path for the single, detailed file
+        output_folder = "./data/secondary/"
+        os.makedirs(output_folder, exist_ok=True)
+        details_path = os.path.join(output_folder, "secondary_analysis_consolidation_details.csv")
+        
+        details_df.to_csv(details_path, index=False)
+        
+        # Report the final statistics
+        group_count = details_df['consolidation_id'].nunique()
+        metric_count = len(details_df)
+        print(f"\n✓ Successfully identified {metric_count} metrics for consolidation into {group_count} unique groups.")
+        print(f"✓ Saved final detailed analysis to: {details_path}")
+        
+        return details_df
+
+    except Exception as e:
+        print(f"✗ Failed to parse final consolidation results: {e}")
+        return None
+# --- End: Replacement code for functions.py ---

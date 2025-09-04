@@ -21,7 +21,6 @@ WITH
     )
     WHERE
       viewers >= 3
-      AND assetOwner IN (INSERT) -- <--- Your list of asset owners here
   ),
   -- 2. Identify all unique users who have viewed any of these popular reports.
   UsersOfPopularReports AS (
