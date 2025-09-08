@@ -1,0 +1,32 @@
+{
+  "pipeline": [
+    {
+      "stage_name": "stage_1_identification",
+      "prompt_file": "prompts/stage_1_identification.txt",
+      "input_source": "initial_sql_query",
+      "group_by": "looker_studio_report_id",
+      "output_files": {
+        "dashboards": "data/looker_analysis_dashboards.csv",
+        "metrics": "data/looker_analysis_metrics.csv"
+      }
+    },
+    {
+      "stage_name": "stage_2_consolidation",
+      "prompt_file": "prompts/stage_2_consolidation.txt",
+      "input_source": "stage_1_identification.metrics",
+      "group_by": "dashboard_id",
+      "output_files": {
+        "consolidated_metrics": "data/dashboard_consolidated_metrics.csv"
+      }
+    },
+    {
+      "stage_name": "stage_3_standardization",
+      "prompt_file": "prompts/stage_3_standardization.txt",
+      "input_source": "stage_2_consolidation.consolidated_metrics",
+      "group_by": "business_domain",
+      "output_files": {
+        "domain_recommendations": "data/domain_metric_recommendations.csv"
+      }
+    }
+  ]
+}

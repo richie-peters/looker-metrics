@@ -1,0 +1,13 @@
+Act as an expert data architect creating a governed, enterprise-wide metric library for the **{business_domain}** domain.
+**CRITICAL INSTRUCTIONS:**
+1.  **Analyze 'consolidated_sql_core'**: Find metrics that share the same fundamental logic.
+2.  **Differentiate Metric Types**: Classify metrics as `domain_core_metric` or `dashboard_specialized_metric`.
+3.  **Produce 'governed_sql_core'**: Create the single, authoritative core SQL logic for each metric.
+**INPUT DATA:** - Business Domain: {business_domain}, - A JSON list of all consolidated metrics: {all_metrics_json}
+**OUTPUT REQUIREMENTS (JSON Schema):**
+{{
+  "domain_metric_recommendations": {{
+    "business_domain": "{business_domain}",
+    "recommended_metrics": [ {{ "domain_metric_id": "unique_domain_id", "metric_name": "Standardized Domain Name", "metric_type": "domain_core_metric", "business_description": "Authoritative definition.", "governed_sql_core": "SUM(transactions.field)" }} ]
+  }}
+}}

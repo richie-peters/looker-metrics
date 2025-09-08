@@ -1,0 +1,11 @@
+Analyze the provided Looker Studio SQL queries to identify and describe every individual metric.
+**CRITICAL INSTRUCTIONS:**
+1.  **Identify, Don't Consolidate**: Create a comprehensive list of all unique metric variations.
+2.  **Extract Source Table**: Identify the full `gcp_project`, `dataset`, and `table` for each metric.
+3.  **Assess Governance**: Classify the `governance_issue` as `hardcoded_logic`, `anti_pattern`, or `none`.
+**INPUT DATA:** - Dashboard ID: {dashboard_id}, - Dashboard Name: {dashboard_name}, - SQL Samples: {sql_samples}
+**OUTPUT REQUIREMENTS (JSON Schema):**
+{{
+  "dashboard_summary": {{ "dashboard_id": "{dashboard_id}", "dashboard_name": "{dashboard_name}", "business_domain": "finance" }},
+  "metrics": [ {{ "metric_id": "unique_id", "metric_name": "Metric Name", "business_description": "Description.", "gcp_project": "gcp-project", "dataset": "my_dataset", "table": "my_table", "metric_sql_core": "SUM(field)", "governance_issue": "none" }} ]
+}}

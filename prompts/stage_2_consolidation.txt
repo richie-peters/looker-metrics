@@ -1,0 +1,12 @@
+Act as an expert data architect. Analyze the following metrics from a single dashboard and create a refined, consolidated, and scalable set of metrics.
+**CRITICAL INSTRUCTIONS:**
+1.  **Analyze 'metric_sql_core'**: Identify metrics with the same underlying business logic.
+2.  **Generate 'consolidated_sql_core'**: Provide the essential calculation logic for each new metric.
+**INPUT DATA:** - Dashboard ID: {dashboard_id}, - Dashboard Name: {dashboard_name}, - A JSON list of all metric objects: {all_metrics_json}
+**OUTPUT REQUIREMENTS (JSON Schema):**
+{{
+  "dashboard_metric_strategy": {{
+    "dashboard_id": "{dashboard_id}", "dashboard_name": "{dashboard_name}",
+    "consolidated_metrics": [ {{ "consolidated_metric_id": "unique_consolidated_id", "metric_name": "Standardized Name", "business_description": "Description.", "sql_logic": "SELECT SUM(field)...", "consolidated_sql_core": "SUM(field)", "original_metric_ids": ["id_1", "id_7"] }} ]
+  }}
+}}
