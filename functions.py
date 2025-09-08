@@ -83,10 +83,15 @@ def run_analysis_stage(stage_config, input_data, session_config, config):
     )
     if not results: return None
 
-    parsed_df = _parse_batch_results(stage_name, results)
-    _save_stage_output(stage_name, parsed_df, stage_config["output_files"])
+    # --- MODIFICATION HERE ---
+    # The parsing function now returns two dataframes; we capture both.
+    main_df, analysis_df = _parse_batch_results(stage_name, results)
+
+    # Pass both dataframes to the saving function.
+    _save_stage_output(stage_name, main_df, analysis_df, stage_config["output_files"])
     
-    return parsed_df
+    # The main dataframe (metrics) is returned to the pipeline orchestrator.
+    return main_df
 
 # ==============================================================================
 # 3. HELPER FUNCTIONS (PREPARATION, PARSING, SAVING)
@@ -126,46 +131,102 @@ def _prepare_batch_input(stage_name, data, prompt_template, group_by_col):
 
 def _parse_batch_results(stage_name, results):
     parsed_items = []
+    # This list is new, to hold the dashboard-level analysis from Stage 2
+    dashboard_analysis_items = [] 
+
     for result in results:
         try:
             raw_text = result.get('response', {}).get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
-            json_text_match = re.search(r'```json\s*(\{.*?\})\s*```', raw_text, re.DOTALL)
-            if not json_text_match: json_text_match = re.search(r'(\{.*?\})', raw_text, re.DOTALL)
-            if not json_text_match: continue
+            json_text_match = re.search(r'```json\s*(.*?)\s*```', raw_text, re.DOTALL)
+            if not json_text_match:
+                json_text_match = re.search(r'(\{.*?\})', raw_text, re.DOTALL)
+            
+            if not json_text_match:
+                print("⚠️ Warning: Could not find JSON in a result, skipping.")
+                continue
+
+            # Using strict=False can help with minor formatting issues
             parsed_json = json.loads(json_text_match.group(1), strict=False)
 
             if stage_name == 'stage_1_identification':
                 summary = parsed_json.get('dashboard_summary', {})
-                if summary.get('dashboard_id') == 'GENERATION_ERROR': continue
+                if summary.get('dashboard_id') == 'GENERATION_ERROR':
+                    continue
                 for metric in parsed_json.get('metrics', []):
                     metric.update(summary)
                     parsed_items.append(metric)
+            
+            # --- THIS IS THE NEW, CORRECTED LOGIC FOR STAGE 2 ---
             elif stage_name == 'stage_2_consolidation':
-                strategy = parsed_json.get('dashboard_metric_strategy', {})
-                for metric in strategy.get('consolidated_metrics', []):
-                    metric['dashboard_id'] = strategy.get('dashboard_id')
+                analysis = parsed_json.get('dashboard_analysis_and_consolidation', {})
+                
+                # Extract the dashboard summary and save it separately
+                summary = analysis.get('dashboard_summary', {})
+                if summary:
+                    dashboard_analysis_items.append(summary)
+
+                # Extract the consolidated metrics
+                for metric in analysis.get('consolidated_metrics', []):
+                    # Add dashboard_id for context, as it's in the summary
+                    metric['dashboard_id'] = summary.get('dashboard_id')
                     parsed_items.append(metric)
+            # ---------------------------------------------------------
+
             elif stage_name == 'stage_3_standardization':
                 recs = parsed_json.get('domain_metric_recommendations', {})
                 for metric in recs.get('recommended_metrics', []):
                     metric['business_domain'] = recs.get('business_domain')
                     parsed_items.append(metric)
-        except (json.JSONDecodeError, Exception):
-            continue
-    return pd.DataFrame(parsed_items)
 
-def _save_stage_output(stage_name, df, output_files_config):
-    if df.empty: return
+        except (json.JSONDecodeError, Exception) as e:
+            print(f"✗ ERROR parsing a result: {e}. Skipping.")
+            continue
+    
+    # In Stage 2, we need to handle two different dataframes.
+    # For simplicity, this function will now return a tuple: (main_df, optional_analysis_df)
+    if stage_name == 'stage_2_consolidation':
+        return pd.DataFrame(parsed_items), pd.DataFrame(dashboard_analysis_items)
+
+    return pd.DataFrame(parsed_items), None
+
+def _save_stage_output(stage_name, main_df, analysis_df, output_files_config):
+    """
+    Saves the output dataframe(s) of a pipeline stage to the specified files.
+    For Stage 2, it handles saving both the main metrics and the analysis summary.
+    """
+    if main_df is None or main_df.empty:
+        print(f"⚠️ No main data to save for stage '{stage_name}'.")
+        return
+
+    # --- NEW LOGIC FOR STAGE 2 ---
+    if stage_name == 'stage_2_consolidation':
+        # Save the consolidated metrics dataframe
+        metrics_output_path = output_files_config.get("consolidated_metrics")
+        if metrics_output_path:
+            os.makedirs(os.path.dirname(metrics_output_path), exist_ok=True)
+            main_df.to_csv(metrics_output_path, index=False)
+            print(f"✓ Saved output 'consolidated_metrics' to: {metrics_output_path}")
+
+        # Save the separate dashboard analysis dataframe
+        analysis_output_path = output_files_config.get("dashboard_analysis")
+        if analysis_output_path and analysis_df is not None and not analysis_df.empty:
+            os.makedirs(os.path.dirname(analysis_output_path), exist_ok=True)
+            analysis_df.to_csv(analysis_output_path, index=False)
+            print(f"✓ Saved output 'dashboard_analysis' to: {analysis_output_path}")
+        return
+    # ----------------------------
+
+    # Original logic for other stages
+    if main_df.empty: return
     for output_name, output_path in output_files_config.items():
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         if stage_name == 'stage_1_identification' and output_name == 'dashboards':
-            df[['dashboard_id', 'dashboard_name', 'business_domain']].drop_duplicates().to_csv(output_path, index=False)
+            main_df[['dashboard_id', 'dashboard_name', 'business_domain']].drop_duplicates().to_csv(output_path, index=False)
         elif stage_name == 'stage_1_identification' and output_name == 'metrics':
-            df.drop(columns=['dashboard_name', 'business_domain']).to_csv(output_path, index=False)
+            main_df.drop(columns=['dashboard_name', 'business_domain']).to_csv(output_path, index=False)
         else:
-            df.to_csv(output_path, index=False)
+            main_df.to_csv(output_path, index=False)
         print(f"✓ Saved output '{output_name}' to: {output_path}")
-
 # ==============================================================================
 # 4. CORE UTILITIES (BigQuery, GCS, Git)
 # ==============================================================================
@@ -208,7 +269,12 @@ def _run_gemini_batch(requests, project, display_name, input_gcs_uri, output_gcs
                     exact_output_uri = job_state.output_info.gcs_output_directory
                     bucket_name, prefix = exact_output_uri.replace('gs://', '').split('/', 1)
                     blobs = storage.Client().list_blobs(bucket_name, prefix=prefix)
-                    results = [json.loads(line) for blob in blobs if 'predictions' in blob.name and blob.name.endswith('.jsonl') for line in blob.download_as_text().strip().split('\n') if line]
+                    results = []
+                    for blob in blobs:
+                        if 'predictions' in blob.name and blob.name.endswith('.jsonl'):
+                            for line in blob.download_as_text().splitlines():
+                                if line.strip():
+                                    results.append(json.loads(line))
                     print(f"✓ Successfully read {len(results)} predictions.")
                     return results
                 except Exception as e:

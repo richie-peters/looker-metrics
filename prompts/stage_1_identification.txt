@@ -6,6 +6,28 @@ Analyze the provided Looker Studio SQL queries to identify and describe every in
 **INPUT DATA:** - Dashboard ID: {dashboard_id}, - Dashboard Name: {dashboard_name}, - SQL Samples: {sql_samples}
 **OUTPUT REQUIREMENTS (JSON Schema):**
 {{
-  "dashboard_summary": {{ "dashboard_id": "{dashboard_id}", "dashboard_name": "{dashboard_name}", "business_domain": "finance" }},
-  "metrics": [ {{ "metric_id": "unique_id", "metric_name": "Metric Name", "business_description": "Description.", "gcp_project": "gcp-project", "dataset": "my_dataset", "table": "my_table", "metric_sql_core": "SUM(field)", "governance_issue": "none" }} ]
+  "dashboard_summary": {{
+    "dashboard_id": "string",
+    "dashboard_name": "string",
+    "prompt_version": "1.1",
+    "primary_data_sources": "A semicolon-separated list of all unique 'project.dataset.table' sources found.",
+    "business_domain": "Infer from one of: advertising|finance|consumer|operations|marketing|sales|product|hr|other",
+    "complexity_score": "Score 1-10. Base this on the variety of SQL functions, number of joins, and use of window functions or complex CASE statements.",
+    "consolidation_score": "Score 1-10. A higher score means more metrics share the same 'base_metric_id', indicating a high benefit from consolidation.",
+    "score_reasoning": "A brief, single-sentence explanation for the complexity and consolidation scores.",
+    "total_metrics_identified": "number",
+    "date_grain": "Infer the most common grain: daily|weekly|monthly|quarterly|yearly|mixed|none"
+  }},
+  "metrics": [
+    {{
+      "metric_id": "The exact, unique column alias from the SQL for this specific metric variation.",
+      "base_metric_id": "A common identifier for metrics representing the same core concept. **Example**: A metric for 'YTD Revenue' (metric_id: 'ytd_revenue') and 'Last Month Revenue' (metric_id: 'lm_revenue') should BOTH have 'total_revenue' as their base_metric_id.",
+      "metric_name": "A clean, human-readable name.",
+      "business_description": "A concise, one-sentence business definition.",
+      "gcp_project_name": "The GCP project ID of the primary table. Leave blank if unavailable",
+      "dataset_name": "The BigQuery dataset of the primary table. Leave blank if unavailable",
+      "table_name": "The BigQuery table name of the primary table.",
+      "sql_logic": "A complete, valid BigQuery query that calculates this single metric. It MUST include a full SELECT and FROM clause using the full `project.dataset.table` path.",
+    }}
+  ]
 }}

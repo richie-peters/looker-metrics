@@ -1,259 +1,104 @@
 dashboard_id,dashboard_name,business_domain
-e0552be8-36bd-484d-aa60-b531621651c0,GIC Dashboard,finance
-3cf1c516-8797-455b-913a-8722b604bbfe,Audience Insights - The Australian engagement,Media/Publishing
-ff4058c3-43f5-4324-a3ce-0c1aa455d67b,SANDBOX VERSION - Paid Consumer Subscriptions Acquisition Dashboard,finance
-57a6a6b6-710d-4258-968d-35ab9a7704e5,Verity 2.0 Gold Coast Bulletin : Sunrise Report (Click here to access the full report),media/publishing
-a318d7d9-e528-475f-8c17-9aefdfac4190,Copy of Test of Consumer - Core Subscription Health Check ,finance
-a7a1d3ee-3b79-471c-a04a-22383717538e,Editorial AI - Source Data,Media
-fb7ea77f-c0b0-490a-9cb2-eb49816cf8fa,ARM,finance
-af564bd3-ec49-4836-9e6f-2040699aa76b,DP Dashboard - Draft v1,finance
-48a09c73-18f8-4e25-a22f-61398f34ab2a,Verity 2.0: NSN Weekly Subs - NRL,finance
-07de4dcd-194f-42aa-87bf-ee79996fb768,Verity 2.0 Local Last week's performance,unknown
-d3b51d1f-8b66-440f-9bc3-cc96429075bd,Verity 2.0 - S&C Federal Election Daily,news/media
-ae8a7e4a-6850-4617-aca7-de689047229d,News monthly snapshot - IPSOS,Media Analytics
-c4796c36-94d3-4cbf-9762-4f2a492454bb,SVOC Customer Interaction draft analysis,finance
-3e28affe-dc1b-43b8-b7aa-bd7cb3572084,Digital Subscriptions - Extracts,finance
-57957536-505f-4507-8062-c7cbe7c46ecf,Verity 2.0 Pulse Check - Monthly v2,finance
-36c94aef-cf82-466b-9b8f-6a3a6580e059,Hackathon- AI-2025,finance
-bedebbe4-3e46-47d5-bc36-6d867544ba66,News Incident Report,IT Operations
-c00fff03-f644-4725-90db-35b254793268,Verity 2.0 - Daily Digital Retro - HS,finance
-ec783355-ff58-423e-a8df-83c75e9f77b3,Verity 2.0 Townsville Bulletin : Sunrise Report (Click here to access the full report),business_performance
-7ada02b8-e93e-41d8-9a7e-05013ff81247,Unmapped Revenue NPV,finance
-47325be1-3ddd-4d01-8fc0-3ec1e532b196,Verity 2.0 user table lookup,Internal Operations / User Management
-a7a0f9fb-9e07-4931-8127-a7944660b5c9,Verity 2.0 - PRD - Video Summary,Media Analytics
-73e125c7-5447-4e59-9560-ed12d7c7f153,Adomik Snowflake v NQ CDM,finance
-5fa24f44-3883-4580-8930-bc4ca0bb7430,Verity 2.0 Business Network : Sunrise Report (Click here to access the full report) ,finance
-8f848270-688f-4455-82a6-3bc9a7d39cce,Newsquery Health App,finance
-81522b56-4697-49ac-93da-6faed306d799,GOOD Churn Score - Counts by healthcare Updated DG 140224 ,finance
-2a7796ef-1ee1-46d5-ab21-dee8ec3ac155,AI at Scale App,finance
-19891283-911c-4528-b830-c99e4cb76155,Verity 2.0 Daily C-Score report: DT,finance
-6f1c8731-02da-464f-b146-bf2947860735,Programmatic Sales_NQ Data,finance
-6a9da673-c8cd-4bd5-8743-77da4afcfa78,TDD DATA - AUDIO DASHBOARD,finance
-2a7c146f-7170-4d91-8508-f0a5d2e55e7c,On platform Winback reporting,finance
-362cc5e9-d421-48f2-bdf3-042b976176aa,DPE Monthly Product Data Report,Media Analytics
-a07c3b8c-9aac-4462-8d22-f3c662016f59,Verity 2.0 The Weekend Australian Performance,finance
-a5d7d240-afbf-4f2d-b228-565c10dceb18,Updated Postcode Report ,finance
-87f8ac55-5642-48ed-a7e7-f56dffb4ff94,Core Web Vitals : Monthly Chrome UX Market Data,Web Performance Analytics
-858161fd-9f14-4882-b218-2190b7325229,REA/RCA Referral Report,Digital Analytics
-c902dea7-7c03-4995-a4f5-56ff4f6f5635,SMS send monthly count by brand,Marketing
-37641205-ec3e-4184-a5dd-f5ca79248335,Digital Subscriptions Report,finance
-db85d1ac-5987-469f-978a-5334af29f7aa,CodeLite Dashboard,media/publishing
-f9ccd2b5-7e80-4e3f-a00a-770cd45b1441,Editorial AI | User Overview,media_publishing
-db5d30dd-1fbd-4ddf-9ce5-21d28b662ce6,Verity 2.0 The National News Network Daily,finance
-43bb6e05-d417-49e0-870f-e51fa1b31b59,Verity 2.0 - Prod - PRSTN - Content Registration Summary,finance
-9ecab5db-180b-480c-a819-d10e5b8d263e,Requests from Gad,finance
-5c2ab8ff-72ab-4387-bbb9-f29746fc7985,Subscription Movement Tracking ,finance
-435b3177-8c9b-458c-9225-9c49bdbb9c98,Exit link from Datalocal auction-sales stories,media
-9d62354b-6993-4829-9de4-f12bf37befab,Newsquery BAU,finance
-bac3734e-7fa0-4c2e-aee2-5547277d21f3,EIC Weekly Newsletter Dashboard,finance
-c3fc480a-3d9d-4ea9-96f3-4eab5ec79637,Copy of Consumer-UD - Core Subscription Health Check ,finance
-acf4223b-efb2-4a6e-961d-a2f5fe0e004e,Verity 2.0 - Daily Digital Retro - DT,finance
-a42a8045-0c60-4346-bfd2-6d2b5839ebec,Verity 2.0 NNN Weekly Performance Report,finance
-a00f4341-2de3-4d89-8f85-cca805fb10d7,NewsQuery Cost Operation Dashboard-20241105,finance
-a1c16d3b-d19a-4abd-b96c-7a87580815db,Verity data for finance scorecard - DRAFT,finance
-eef984c7-b528-4716-a506-e8e8bcb7861f,Verity 2.0 SA Weekend Content Review: Tuesday report,Media Analytics
-5f6befe5-af10-4fe9-80aa-9d3827c6732a,EDV - Status Monitoring,finance
-8087886f-b3c5-4337-a45e-f51b8819a362,Funnel Report Official,Digital Analytics
-906ca8a7-1733-4a1a-b2f5-2660551f3d3a,Month End Reporting Reconcilation - ME team copy,finance
-e6db873d-657f-40e8-87a0-007d41f68a55,Verity 2.0 The Australian,media/publishing
-c32d96e5-38f4-48a8-9b70-3d89a83f03aa,Circulation Insights,finance
-7888a780-7777-411b-b07b-398b87d2cfd0,Newpass reporting,Customer Acquisition
-127587ca-3bf2-4367-809c-ce91aca8fb52,Verity - Prod - Newsroom display - TABN,finance
-73153654-dd99-4f67-839d-a986a52ca1e2,Monthly Executive Summary 2.0,media_analytics
-52dd1ac1-19b5-4695-a7e6-632ef7a9dba3,Consumer Finance Landing Page,finance
-eb8b311c-ae29-4773-b749-b429715b073d,Verity 2.0 Sport Newsroom : Sunrise Report (Click here to access the full report) ,media
+f65a9149-93b4-4aa9-aef6-d12002853222,Digital Video Content Audio,advertising
+c9529742-6e47-4644-ae3e-87ace36730cc,Verity 2.0 CODE weekly report,consumer
 d3bcf796-2396-4a6f-b0a3-da0b7f299a58,Publisher and Product Performance Dashboard - FY25 v2,finance
-ae3044ce-064d-4d74-90fc-2cf45afa04ee,Verity 2.0 - Collection History - Network Audience,Media & Content
-2cdcf36b-a99b-4beb-88a6-a28d238f6c1f,DOM - cancels by refferer by month,finance
-35ec2da8-3e63-4f97-90fa-bf9686769718,MRCA Advertising Performance Dashboard - FY26,finance
-7b2ac26e-4ef1-4402-8aa5-975ecaab08b1,Bigquery Load Cost Analysis,finance
-0c50ad01-a1a6-49a6-895f-4c2002a12173,Retentions Dashboard version 1.0,finance
-9c8f39dc-bf5f-4292-bfe3-c6e1ec71c588,Streaming Performance FY26,finance
-b3eace25-3ec3-427a-839f-0639faf377ea,Regression Source Data Analysis,finance
-e642b3f9-9711-44c8-b2d8-959ded9f5b0d,OFFICIAL EDIT - Audience Insights - Adds & Cancels Performance ,Customer Analytics
-39e47abe-f145-4ba6-9562-03fc4d6512d4,Verity 2.0 Daily Telegraph: Sunrise Report (Click here to access the full report) ,media/publishing
-5da65dbf-b1cc-467b-85fc-3c82ea5c9f13,DT Verity At-A-Glance,finance
-c4355ac4-14e3-42a0-ae17-f706fa774b3b,Election Reporting,news
-3f582360-cbc4-4ee3-80a7-14fa61b2f1fd,NIS KPI REPORT,finance
-f04cf01a-a59d-4d08-a6a5-1f4a8a3540a9,Verity 2.0 Local,Sales
-c03dec50-b74e-40c6-a5c8-50fad5ea3f0f,Gen Ai: article summaries,Media/Publishing
-b084f975-486d-4a17-af39-3c20dd915f63,Audience Insights - The Courier-Mail engagement,media
-25db1e50-2b08-468d-8b46-c06dc1308920,Consumer - Core Subscription Health Check ,Data Operations
-23c8b213-a9f0-4158-b8fa-bff14425abb5,TM1 NewsQuery Tables,finance
-4d5e906e-84b0-4825-ad1f-ebaf86acd462,Audience Insights - Cancels Performance - DRAFT,finance
-647e7eab-0b9d-4a55-8429-becd2ee551d1,Food monthly snapshot - IPSOS,Market Research / Audience Analytics
-ef665693-433c-4236-8c1f-77174b969b2c,Audience Insights - Closing Base,media_and_publishing
-70dc50c7-72fe-4268-8e22-6de00e463d20,Verity 2.0 NewsLocal and NSW NRM performance,finance
-7d875070-2381-4306-abf2-c96c75d57d3c,Consumer - Core Subscription Health check,Data Operations
-d5fd8b83-22d8-478f-8e22-b9e83bda01f2,Percentage of article read,finance
-eb904391-4d82-4b02-9f99-5eef7336117f,Martini Dashboard,media analytics
-f2c8cb48-bbf1-4dd5-a321-add152010e22,Op's Critical Monitoring,data_operations
-258a722d-9b6e-45df-ba00-1b9954ec36b2,Debtor to Account Mapping,finance
-a8fe6bb0-3cbf-4d6e-8838-fa6e6dce447f,Pacing Dashboard,finance
-1147dd47-ccea-49cb-bff0-6019f3249bc9,Verity 2.0 Daily C-Score report: HS,customer_analytics
-3f48ba44-14ba-4a43-b02c-7700d0f49c0b,Kidspot Weekly Update,Digital Analytics
-4473a333-74f4-463b-81e7-151f93013906,Verity 2.0 Weekly performance report: HS & SHS,finance
-3516a531-3188-4e5d-b49c-3150298ebdc7,Verity 2.0 Advertiser: Sunrise Report (Click here to access the full report),marketing
-a96a5942-b538-4aba-83cb-d4f16db9a59d,Code App quick look,finance
-87651b69-c43e-471f-9c4b-98df1208a844,Programmatic Sales Patches ,finance
-e6d054c7-c65a-442d-b2a7-4afd6e4884da,Content owned vs sourced report,finance
-003ea399-8d01-4613-91ef-e27f1254bda8,Verity 2.0 Masthead Performance vs Targets,finance
-41f3dfc4-db10-4e4a-9627-1261e9286fd0,Verity 2.0 Daily C-Score report: TABN,media
-3a820eee-f69e-403d-a972-29c4529ec582,Verity 2.0 Weekly performance report: DT & ST,finance
-05d7819d-3d0d-44b4-9701-0ac35c5643fa,Audio Dashboard,media_analytics
-c17f4598-1eb7-4947-8cbe-c7e09f9a143,S&C Health - total results,Content Analytics
-0a4ccf98-dfe7-4bab-b2ed-e2a27ebd9588,Kidspot Daily Update,finance
-1f134ccb-ed11-45d8-ac05-916f31640357,News.com.au Daily Update 5.0 Dev2.0,news_media
-33b41b56-aab7-4a76-bb96-0c891b4b0a1f,Verity 2.0 Education: Sunrise Report,Media/Publishing
-4e1ed0ba-1904-40e6-9841-57377cd9cb53,DCR Volumetrics Gaps - Company-level,finance
-47854b57-024a-4188-adec-cb2f68607208,NewsQuery Overview ,Data Governance
-0cc68971-6bc6-41be-89c9-89776561c2f4,Genome Dashboards,finance
-d8104888-c324-42d8-a9b1-c065ba1c8622,NQ Cost Operation Dashboard Non-Prod,finance
-8ea43b00-837f-4d0f-9c52-5c5f451785ea,Switch and Reactivation - From -> To Details Extract,finance
-18ab97b7-4915-4422-bcb4-ceda8d436b25,NewsQuery Overview,finance
-6012ead7-57df-4fee-8cc4-5ea3125ef993,Tier 1 Distribution - DASHBOARD,finance
-56c2d7df-a806-42fd-a626-09f428503c5b,Woolworths Rebranding,
-ee06d96e-a079-4304-ad4a-2c9a13d20ddf,Verity 2.0 Newsroom 2025: Accelerated Newsroom Performance,media_analytics
-3c8903a2-8dab-445a-9965-8cc2dbeceb0b,AVP - Video Data Dashboard,media
-0546f07c-bb7b-4ec0-aba8-06c738dd12ec,Verity 2.0 Messenger Weekly Subs and C-Score dashboard,finance
-6c8affc5-3d5f-4481-a0ff-d3f6b4cec4a8,Verity 2.0 The Australian Daily,finance
-6575ef79-5264-4580-998a-8150e679f565,Verity 2.0 Sports Live Streams: Weekly Wrap (Click here to access the full report),finance
-783f341c-8660-4e90-bab8-9bc860119cf5,Deals Dashboard,finance
-cbed6cf2-50c3-494c-a4be-4d21d6ad9dac,National Sports Newsroom: Daily Report ,finance
-1b9efa96-31e0-4a43-9f74-c5d0da8c5e42,Audience Insights - The Advertiser engagement,Marketing
-02e77971-7980-47de-853b-5bc0943a65b1,VERITY AT A GLANCE - REGIONALS,finance
-9060d6e1-ee05-438a-9bae-b80814a5e065,Verity 2.0 - Network Syndication Performance yesterday,finance
-e0746d13-dad7-4ba1-aabc-d3b8e83cef54,FY25 Copy of AdSales Data for Pacing Report ,finance
-c9529742-6e47-4644-ae3e-87ace36730cc,Verity 2.0 CODE weekly report,finance
-9c92f02-f13b-4c32-a400-90135fdff180,Verity 2.0 - TAUS Wealth Last Week,finance
-05edacf6-0910-4e94-bbe4-00ebc469fc80,Metadata explorer,media
-f60ad8ef-829d-4363-b705-c60a305ec777,Verity 2.0 Herald Sun : PM Conference (Click here to access the full report) ,finance
-a5ab7569-238a-4229-a402-868a12d75088,Client Heath - Check ,finance
-811bb139-3da6-4fa5-8ddc-4b9f263cb1d5,Beyond Words | Production Dashboard - Beta,media_analytics
-76614538-e13f-4fd7-b6f2-f23a1ce65e1b,Postcode paid subscriber lookup - Genome data - draft,finance
-40ca2397-e61c-42bd-874c-ea7be0681a4b,KTV Dashboard,media_and_publishing
-5d551155-3caa-466b-a1ef-01d0cfa95966,PTC - Topic Authority,finance
-35de2eed-9c03-48a7-8cef-50e2ea1e1235,Dear Rachelle,media
-1184f09d-0506-4e10-aa79-b2cc9612feec,Mindgames Weekly Sales,finance
-c22e86d8-835d-4a68-8c10-5d131e225e6b,Verity 2.0 The Mercury: Sunrise Report (Click here to access the full report) ,finance
-4d22b4c2-4bb3-49db-a0c1-4d46d4fba101,Copy of Acquisitions - Extracts,finance
-59390a9a-e996-46b9-8151-cada4cafef65,Verity At-A-Glance: Vic/tas titles,finance
-61c9dcaa-ebb1-48fc-9d1d-1b0042d3c075,CODE Unlocked articles,media
-34cd05a8-37bb-4a61-b1f5-c782a32bffb3,BAU Dashboard ,IT_Operations
-3c4b6517-cd6a-4138-bd32-09644e44c44a,HS morning report,finance
-705edcb5-737a-4600-b1a7-11870177f97a,Programmatic Impact Reporting,finance
-2dfb1b58-42eb-44cb-b550-66469ae7df3c,Data Load Checks,finance
-d381c80a-e345-4120-8950-e85e976e50b6,Verity 2.0 - Prod - PRSTN - Social Summary,finance
-c51835dc-61f0-4277-ab19-e374508dccd2,Last 6 months - highest subscriber usage,customer_analytics
-70ed3b92-987b-479b-9ed7-d2903bd2787e,Monthly Invoicing Breakdown,finance
-736e39be-8b74-442d-bf5a-0b75971e3de0,Verity At-A-Glance: TAUS,finance
-bb705701-76b0-40eb-bc6f-0159956fda7a,Verity 2.0 NT News : Sunrise Report (Click here to access the full report) ,finance
-6596264e-ca48-4ca6-8871-77d1e0d29b28,Verity 2.0 NSN LAST WEEK,media_analytics
-f5e8e7c6-17e2-4ad7-bae5-79dfa8c47c3a,Verity 1.0 Daily C-Score report: DT,finance
-1d90f8d5-1170-44b0-9c20-3e16f00ddf1d,"Code Sports Clusters age, gender, mosaic",media_publishing
-246977b9-22df-4780-b0ad-f575607cd32d,Health today,finance
-6e1a98d6-289f-44d8-9b75-7ab171ea23e4,Occupancy Dashboard usage logs,Internal Analytics
-7ffe7054-679e-4e8f-bb3d-01c6e7799899,Engagement data - Audience Insights M&R + TA,finance
-0f03691d-f6b8-4313-bfd9-a5fb1e6dedab,IP Engagement Report,Media/Publishing
-9e810f08-0171-451e-a406-6bf7076c4d2f,Verity 2.0 - TAUS Wealth Daily Update,finance
-c794898d-8468-454e-97c7-de1fa293c759,VERITY AT A GLANCE - [CMWEEKLYVIEW + QUESTWEEKLY VIEW ] Verity 2.0 - Prod - At-a-Glance,finance
-73aa273f-1632-484a-b0eb-c1132725d861,Verity 2.0 Daily Snapshot,finance
-0e05b4ce-cb33-488a-8537-b9e68a844e2e,Acquisitions - Extracts,finance
-19077aa0-64b6-4ca2-b0ce-4e328780e073,Self Learning Segments Report,finance
-c9b68cfe-7e00-4414-beaf-839ae216cc14,Verity 2.0 Pulse Check - Weekly v2,unknown
-eda51dbb-3cc6-46c2-b1f7-8189b682760a,VERITY AT A GLANCE - [QLD REGIONAL WEEKLYVIEW ] Verity 2.0 - Prod - At-a-Glance,business_operations
-f9b52275-5924-4afb-8222-2c55854183ba,Finance Health - Check  ,finance
-8956e94b-f6d1-46a3-9c7f-87a91fbe98b5,LODs,finance
-d7412673-0af1-4efe-8374-ca475b001fb6,Finance OS datasource template report,finance
-3dba3db1-7b70-4bd1-9c89-c78fd19832ac,Gen Ai: comment summaries,media
-5705039f-1f6f-4c93-aba9-8ce549025d5c,SVOC - SIT QVR data sets - Exploration,finance
-7b5f16b7-e7eb-4989-97fe-2a2e74100bfe,Weekly Marketing comms sends,marketing
-35b59adf-a1d7-4673-ad92-77cf87d13b7d,Engagement: Abandoned Cart Lead Nurture Program Performance,finance
-c6d33dfc-2694-44ce-85ae-8fed018197bb,Print to Digital ,finance
-d768f28d-cc4a-4314-b972-cffd680d1bb8,Adpoint Line Items,finance
-c412242b-14aa-4045-84f0-b8c3b5594898,Missing PCSID deep dive,finance
-6640a246-777a-4fcf-a692-85e02e7f7a8e,Supercoach Engagement Activity Summary,digital_media
-d3723d73-7698-4fc2-b998-157308d5353f,CDP Ph3 Derived dimensions - subscriber_value_group,finance
-77c68c35-20ce-477a-b216-0c781d43a8ca,Cecile - Adsales Adhoc Analysis,finance
-8a5e8eb0-fe0e-40f6-9131-e7a564f5e60b,NewsQuery Data Reconciliation Dashboard - For Ops,finance
-b80779c9-a393-4f32-adc1-605745ac8957,Verity 2.0 - Active Paid Closing Base - Engagement and Demographic Deep Dive - DRAFT,finance
-b821747c-3075-4a4b-b4a5-c12a548b4e1b,CVM dashboard,finance
-8531208f-5b20-40d0-8b57-2d15ac1fca33,Verity 2.0 Toowoomba Chronicle Sunrise Report (Click here to access the full report) ,finance
-abe67573-53fb-4cc2-a622-5cb9aa20166,Verity 2.0 - Prod - Newsroom display - TWT,finance
-ca71779e-655c-4fda-a06a-c32970fc283a,Verity FY26 - Testing newsroom screen & possible new KPIs,finance
-abca77ac-e6e3-44ab-8cd9-64f1064d04fd,Mutti Rebranding,Content Analytics
-5506c033-2f12-4464-b45b-4a12b7849ed6,CP-RoyMorgan_Data,finance
-cbab66df-64cb-4ec4-a112-088557684b7e,FY25 OS extract for month end rec,finance
-3ee20092-1897-49b7-8bcd-4157d5f816eb,AdSales Data for Pacing Report ,finance
-f65a9149-93b4-4aa9-aef6-d12002853222,Digital Video Content Audio,finance
-4d233abb-3d9b-4942-98b0-3989e8986970,Verity Newsroom display - National Sports Newsroom,finance
-4b158218-2a09-443c-929a-a7f5dae09979,BEYOND WORDS,finance
-e2102eb1-8bdb-4df7-b3ea-e72481f1bb55,Verity 2.0 Geelong Advertiser: Sunrise Report (Click here to access the full report) ,media_analytics
-5645b0e9-2850-4984-b808-b90bcb74ed92,Verity Newsroom display - Code Sports,
-a2edd9c0-9f0c-45f4-b481-6ed9e4a3f11d,PACMAN Dashboard - FY25,finance
-6ee6cea9-d444-437d-96c9-cf93a94aad6b,Verity - Prod - Newsroom display - The Chronicle,finance
-52b2e0a6-fd53-4788-94da-101037302104,Data Townhall Feedback,finance
-56624f8b-0974-4212-b3ef-46f11233c639,Stuart Kavanagh - Leader: My week last week,internal operations / analytics
-c16a956e-a495-4678-bc4d-cb7009ab8899,Puzzles Engagement,finance
-404605d3-dac4-4af9-b43e-b7915ecd7125,Inflated App PVS investigation,Digital Analytics
-744cc917-29e9-4af7-b811-3043e3ced208,MGR BIOps,project_management
-1479f9e9-5993-4969-a5b4-e74112f9134a,BSG - PowerBI,IT Operations
-63911575-4b9d-45c4-830c-8726e98adb93,Verity 2.0 Weekly performance report: CODE + NSN,finance
-f8b92c6c-021f-47fc-b373-ad37503303c9,The Australian Business Network dashboards,finance
-1091b278-b70b-40d5-af7b-5750a63c662d,Engagement: Subscriber Onboarding & In-Life Program Performance,Marketing/Customer Engagement
-fbf4d483-b17a-4040-b18c-091481d62200,NewsQuery - Cost Tracking,finance
-b8ff9b19-a3c3-4b05-a4a1-d6626d5783da,Verity 2.0: NSN Weekly Subs dashboard,finance
-7af6d106-46fc-4721-8a0c-3da32bc27707,Cadets,finance
-e33ad43b-7f46-4dd7-bfd4-bd53657e4538,Paid Consumer Subscriptions Cancellation Dashboard,finance
-3d387428-38ed-4de6-81a0-f75f3e904118,Subscriber Linked Google Account Engagement,media
-f5afdb43-bb70-48be-a049-79cf77f7c6a6,Verity 2.0 The National News Network Weekly,finance
-1b29c0eb-ab01-4e6f-b3f6-8161f5d3c669,Verity sdm salesforce subscrip - WEB_ONL100 FY24,Sales
-4db22271-c915-4a3b-95f1-57f52f6beaf1,Verity 2.0 Weekly performance report: TABN,finance
-45bc0813-2c47-4f36-bcac-ed638ce69ce2,Live Dashboard,finance
-d4d68a71-2b12-4caf-bc6b-96fc2d18a025,Adsales Details Dashboard,finance
-830018a3-2d7c-4496-bd33-5471d610b39d,Verity 2.0 Daily C-Score report: AA,finance
-b456ee91-66d6-4bcb-b3a7-c752a3e02170,Verity 2.0 - S&C Health Last Week,finance
-435638dc-cebd-41fe-8e93-f4a0e2f0f5a9,Audience Insights PRSTN - Medallia VOC survey dashboard,Customer Experience
-4bd7954c-5a94-4fb6-92e1-ed152b1cf7b3,Copy of Interim Adsales Performance Dashboard for FY26,finance
-af5b3038-ea93-4cf0-9bf5-44a9b09b3766,Conde Nast Analysis,finance
-b1c5901f-a535-42eb-870d-05cc025f7c27,OS extract for month end rec,finance
-0cbe9a87-5f64-4e05-b993-a508e98ecdcd,S+C morning health report,media
-464dbd27-97f1-4665-bd93-22b4e9520bfe,Audience Insights - Adds Performance - DRAFT,finance
-a6c0f7df-8da6-44dc-bf50-72a907020ebc,Cluster by Engagement Level & Tenure Groupings,Customer Analytics
-56ec5017-2440-42e1-a7dd-3791f557b283,Audience Insights - Growth Performance - DRAFT,finance
-58dce9a4-ca60-474d-bf3a-733ee23e565b,Sports monthly snapshot - IPSOS,finance
-38809f41-7138-4b94-94d1-ae919b2d9517,Adpoint Line Items for Financial Accounting V2,finance
-0823e425-5885-4fd6-b89e-5c9508f3cf1d,Verity 2.0 - Prod - PRSTN - Article Summary,finance
-f4967be9-6a67-4865-bd2a-fb16baaf1f6b,Tech Network Dashboard - Dev v0.2,finance
-e83da1de-4227-43e6-bcc6-73051c66914b,Ad Events Dashboard,finance
-8ae7916a-45c9-4713-8d46-e3470805c7f6,NewsQuery Cost Operation Dashboard,finance
-828d35dc-ea9f-4c01-b95f-9b64ae7500f1,Verity 2.0 AA Weekly Performance Report,publishing performance
-9b27e204-fd9a-4032-8669-58b6f23bf3ef,Verity 2.0 Cairns Post : Sunrise Report (Click here to access the full report),finance
-0071d646-565a-46be-b47c-e78a85d5cee7,Verity 2.0 Metro Business Network: Sunrise Report,finance
-89140d65-10c7-4de8-9dfa-f5585b101519,Verity 2.0 - SC Health 7 DAY,Media/Publishing
-5b6fc742-e514-4052-9c56-1d7a44f755f6,Decay - Dev,finance
-ed91d3f4-4175-4293-a648-e8dbca4cea93,Newscorp Australia Daily Update,
-1f63540f-8268-4e9f-83a3-3acf63da5da5,Travel monthly snapshot - IPSOS,Audience Analytics
-71dfdbc0-a8d2-4131-bf4e-7e54ac7e6b5e,Lapsed/Cancelled EDM stats,Marketing
-83a1c0b2-67b2-4d3e-8bc4-98a9f3683ad1,CVR Source Code,Digital Analytics
-a934f5eb-3b42-46f4-bd22-815444731247,NewsQuery Rewards redemption data test,Customer Loyalty
-77631717-5cc6-4903-87bd-7314bf461243,Free & Complimentary SuperCoach Extract,finance
-be89856b-4177-42f1-8cb6-50cdde0d516c,Network Module- Engagement ( version 1.0),Media/Engagement
-a6b35c09-d774-4509-95d0-4e3c05417e57,MLOPS - GCP AI Usage Summary,finance
-dc9bcf46-d0a0-4501-8eb6-607f061379d9,Looker workspace test ,finance
-b15d856f-e3ce-4991-bf2a-92395390254f,Programmatic Rolling 60 Day Overview_NQ Data,finance
-8a7be976-10d2-4657-aa8a-8bcbcb4c4cd7,News.com.au - Best Of & Checkout - Daily Update,media
-e5702a4e-27f6-42cc-8cd8-0b5ff84421e4,Paid Consumer Subscriptions Acquisition Dashboard,finance
+45bc0813-2c47-4f36-bcac-ed638ce69ce2,Live Dashboard,product
+6596264e-ca48-4ca6-8871-77d1e0d29b28,Verity 2.0 NSN LAST WEEK,product
+bedebbe4-3e46-47d5-bc36-6d867544ba66,News Incident Report,operations
+f60ad8ef-829d-4363-b705-c60a305ec777,Verity 2.0 Herald Sun : PM Conference (Click here to access the full report),consumer
+a934f5eb-3b42-46f4-bd22-815444731247,NewsQuery Rewards redemption data test,consumer
+d3723d73-7698-4fc2-b998-157308d5353f,CDP Ph3 Derived dimensions - subscriber_value_group,consumer
+6a9da673-c8cd-4bd5-8743-77da4afcfa78,TDD DATA - AUDIO DASHBOARD,product
+8531208f-5b20-40d0-8b57-2d15ac1fca33,Verity 2.0 Toowoomba Chronicle Sunrise Report,product
+d5fd8b83-22d8-478f-8e22-b9e83bda01f2,Percentage of article read,product
+1f134ccb-ed11-45d8-ac05-916f31640357,News.com.au Daily Update 5.0 Dev2.0,product
+83a1c0b2-67b2-4d3e-8bc4-98a9f3683ad1,CVR Source Code,marketing
+19891283-911c-4528-b830-c99e4cb76155,Verity 2.0 Daily C-Score report: DT,product
+3ee20092-1897-49b7-8bcd-4157d5f816eb,AdSales Data for Pacing Report ,sales
+89140d65-10c7-4de8-9dfa-f5585b101519,Verity 2.0 - SC Health 7 DAY,consumer
+0823e425-5885-4fd6-b89e-5c9508f3cf1d,Verity 2.0 - Prod - PRSTN - Article Summary,sales
+ed91d3f4-4175-4293-a648-e8dbca4cea93,Newscorp Australia Daily Update,consumer
+0546f07c-bb7b-4ec0-aba8-06c738dd12ec,Verity 2.0 Messenger Weekly Subs and C-Score dashboard,consumer
+ae3044ce-064d-4d74-90fc-2cf45afa04ee,Verity 2.0 - Collection History - Network Audience,product
+bb705701-76b0-40eb-bc6f-0159956fda7a,Verity 2.0 NT News : Sunrise Report (Click here to access the full report),consumer
+57a6a6b6-710d-4258-968d-35ab9a7704e5,Verity 2.0 Gold Coast Bulletin : Sunrise Report (Click here to access the full report),operations
+1147dd47-ccea-49cb-bff0-6019f3249bc9,Verity 2.0 Daily C-Score report: HS,product
+b3eace25-3ec3-427a-839f-0639faf377ea,Regression Source Data Analysis,sales
+4b158218-2a09-443c-929a-a7f5dae09979,BEYOND WORDS,consumer
 712ca6fe-b491-4a01-af6e-1495fb3c7d12,Finance Data Checks,finance
-ec3c813c-6c23-4a43-926c-73a56c6df69e,TCS Governance Dashboard [Data Portfolio] V2,finance
-a17622e2-ad43-49cc-b3c5-19c95036fd14,Advertising Rebates Dashboard,finance
-c441950c-1e3f-432c-9838-847d1d315b9e,Circulation Insights for Analysis,finance
-42b711d5-6567-46b6-bf11-0f33e66e297e,Elton's alert dashboard - TEST,finance
-da75444c-ed16-43f1-accc-56326aa8ccb0,Verity 2.0 - TAUS World Daily Update,finance
-7ab2395e-d246-4e16-b376-dd763ecefecb,Verity 2.0 Weekly DT reporter pack,finance
-63f9fc08-acd1-4d1b-866e-5b2050b5093f,Audience Insights - The Daily Telegraph engagement,media
-cb5ce22d-b196-49dc-9d7b-8db7ca1f1f4d,Performance Solutions - Fin Year,finance
-5e816a83-a077-4fdb-9b1f-bdaf0d527a62,Editorial AI - data discovery,Media/Publishing
-9edf8948-86f2-40ac-9bce-1cd4a7289c8a,Sky News Dashboard (Paywall),media
-80ca81f3-0671-40ef-a0a9-825a1580ca1b,Team Sales Performance,finance
-41dda2e0-7935-4eca-9a86-1b0e763c2657,News.com.au Daily Update 5.0,media
+4d233abb-3d9b-4942-98b0-3989e8986970,Verity Newsroom display - National Sports Newsroom,operations
+9ecab5db-180b-480c-a819-d10e5b8d263e,Requests from Gad,sales
+783f341c-8660-4e90-bab8-9bc860119cf5,Deals Dashboard,advertising
+63f9fc08-acd1-4d1b-866e-5b2050b5093f,Audience Insights - The Daily Telegraph engagement,consumer
+3f48ba44-14ba-4a43-b02c-7700d0f49c0b,Kidspot Weekly Update,marketing
+d4d68a71-2b12-4caf-bc6b-96fc2d18a025,Adsales Details Dashboard,sales
+abe67573-53fb-4cc2-a622-5cb9aa20166,Verity 2.0 - Prod - Newsroom display - TWT,operations
+ee06d96e-a079-4304-ad4a-2c9a13d20ddf,Verity 2.0 Newsroom 2025: Accelerated Newsroom Performance,other
+cbed6cf2-50c3-494c-a4be-4d21d6ad9dac,National Sports Newsroom: Daily Report,operations
+2a7796ef-1ee1-46d5-ab21-dee8ec3ac155,AI at Scale App,operations
+52dd1ac1-19b5-4695-a7e6-632ef7a9dba3,Consumer Finance Landing Page,finance
+d768f28d-cc4a-4314-b972-cffd680d1bb8,Adpoint Line Items,advertising
+c4355ac4-14e3-42a0-ae17-f706fa774b3b,Election Reporting,other
+a96a5942-b538-4aba-83cb-d4f16db9a59d,Code App quick look,consumer
+1b9efa96-31e0-4a43-9f74-c5d0da8c5e42,Audience Insights - The Advertiser engagement,consumer
+f5afdb43-bb70-48be-a049-79cf77f7c6a6,Verity 2.0 The National News Network Weekly,consumer
+70dc50c7-72fe-4268-8e22-6de00e463d20,Verity 2.0 NewsLocal and NSW NRM performance,product
+f04cf01a-a59d-4d08-a6a5-1f4a8a3540a9,Verity 2.0 Local,sales
+830018a3-2d7c-4496-bd33-5471d610b39d,Verity 2.0 Daily C-Score report: AA,operations
+4bd7954c-5a94-4fb6-92e1-ed152b1cf7b3,Copy of Interim Adsales Performance Dashboard for FY26,advertising
+40ca2397-e61c-42bd-874c-ea7be0681a4b,KTV Dashboard,consumer
+b456ee91-66d6-4bcb-b3a7-c752a3e02170,Verity 2.0 - S&C Health Last Week,sales
+5645b0e9-2850-4984-b808-b90bcb74ed92,Verity Newsroom display - Code Sports,product
+41f3dfc4-db10-4e4a-9627-1261e9286fd0,Verity 2.0 Daily C-Score report: TABN,product
+1091b278-b70b-40d5-af7b-5750a63c662d,Engagement: Subscriber Onboarding & In-Life Program Performance,marketing
+a6b35c09-d774-4509-95d0-4e3c05417e57,MLOPS - GCP AI Usage Summary,operations
+9b27e204-fd9a-4032-8669-58b6f23bf3ef,Verity 2.0 Cairns Post : Sunrise Report (Click here to access the full report),consumer
+6640a246-777a-4fcf-a692-85e02e7f7a8e,Supercoach Engagement Activity Summary,product
+ec783355-ff58-423e-a8df-83c75e9f77b3,Verity 2.0 Townsville Bulletin : Sunrise Report (Click here to access the full report),operations
+d8104888-c324-42d8-a9b1-c065ba1c8622,NQ Cost Operation Dashboard Non-Prod,operations
+0071d646-565a-46be-b47c-e78a85d5cee7,Verity 2.0 Metro Business Network: Sunrise Report,sales
+3516a531-3188-4e5d-b49c-3150298ebdc7,Verity 2.0 Advertiser: Sunrise Report,advertising
+0c50ad01-a1a6-49a6-895f-4c2002a12173,Retentions Dashboard version 1.0,consumer
+63911575-4b9d-45c4-830c-8726e98adb93,Verity 2.0 Weekly performance report: CODE + NSN,product
+858161fd-9f14-4882-b218-2190b7325229,REA/RCA Referral Report,product
+f353b933-30eb-4853-9976-0d35371db7d7,Month End Reporting Reconcilation,finance
+8a7be976-10d2-4657-aa8a-8bcbcb4c4cd7,News.com.au - Best Of & Checkout - Daily Update,product
+5506c033-2f12-4464-b45b-4a12b7849ed6,CP-RoyMorgan_Data,advertising
+7888a780-7777-411b-b07b-398b87d2cfd0,Newpass reporting,consumer
+41dda2e0-7935-4eca-9a86-1b0e763c2657,News.com.au Daily Update 5.0,consumer
+87651b69-c43e-471f-9c4b-98df1208a844,Programmatic Sales Patches ,advertising
+52b2e0a6-fd53-4788-94da-101037302104,Data Townhall Feedback,consumer
+36c94aef-cf82-466b-9b8f-6a3a6580e059,Hackathon- AI-2025,advertising
+9060d6e1-ee05-438a-9bae-b80814a5e065,Verity 2.0 - Network Syndication Performance yesterday,product
+127587ca-3bf2-4367-809c-ce91aca8fb52,Verity - Prod - Newsroom display - TABN,consumer
+246977b9-22df-4780-b0ad-f575607cd32d,Health today,operations
+8ae7916a-45c9-4713-8d46-e3470805c7f6,NewsQuery Cost Operation Dashboard,operations
+18ab97b7-4915-4422-bcb4-ceda8d436b25,NewsQuery Overview,operations
+2cdcf36b-a99b-4beb-88a6-a28d238f6c1f,DOM - cancels by refferer by month,consumer
+eef984c7-b528-4716-a506-e8e8bcb7861f,Verity 2.0 SA Weekend Content Review: Tuesday report,marketing
+d3b51d1f-8b66-440f-9bc3-cc96429075bd,Verity 2.0 - S&C Federal Election Daily,consumer
+cbab66df-64cb-4ec0-a112-088557684b7e,FY25 OS extract for month end rec,finance
+38809f41-7138-4b94-94d1-ae919b2d9517,Adpoint Line Items for Financial Accounting V2,advertising
+e6db873d-657f-40e8-87a0-007d41f68a55,Verity 2.0 The Australian,consumer
+6ee6cea9-d444-437d-96c9-cf93a94aad6b,Verity - Prod - Newsroom display - The Chronicle,consumer
+76614538-e13f-4fd7-b6f2-f23a1ce65e1b,Postcode paid subscriber lookup - Genome data - draft,consumer
+c902dea7-7c03-4995-a4f5-56ff4f6f5635,SMS send monthly count by brand,marketing
+3d387428-38ed-4de6-81a0-f75f3e904118,Subscriber Linked Google Account Engagement,product
+6f1c8731-02da-464f-b146-bf2947860735,Programmatic Sales_NQ Data,sales
+5515c1c6-18fe-449d-b621-d47631023320,Adpoint Line Items for Financial Accounting,finance
+c32d96e5-38f4-48a8-9b70-3d89a83f03aa,Circulation Insights,finance
+35de2eed-9c03-48a7-8cef-50e2ea1e1235,Dear Rachelle,consumer
+e2102eb1-8bdb-4df7-b3ea-e72481f1bb55,Verity 2.0 Geelong Advertiser: Sunrise Report (Click here to access the full report),advertising
+0cbe9a87-5f64-4e05-b993-a508e98ecdcd,S+C morning health report,product
+eda51dbb-3cc6-46c2-b1f7-8189b682760a,VERITY AT A GLANCE - [QLD REGIONAL WEEKLYVIEW ] Verity 2.0 - Prod - At-a-Glance,consumer
+db85d1ac-5987-469f-978a-5334af29f7aa,CodeLite Dashboard,consumer
+73153654-dd99-4f67-839d-a986a52ca1e2,Monthly Executive Summary 2.0,marketing
+4e74297f-bdb0-426c-9c82-d42067eef9ee,SEO Reporting Suite,marketing
+b8ff9b19-a3c3-4b05-a4a1-d6626d5783da,Verity 2.0: NSN Weekly Subs dashboard,operations
+7ada02b8-e93e-41d8-9a7e-05013ff81247,Unmapped Revenue NPV,finance
+464dbd27-97f1-4665-bd93-22b4e9520bfe,Audience Insights - Adds Performance - DRAFT,marketing
+a1c16d3b-d19a-4abd-b96c-7a87580815db,Verity data for finance scorecard - DRAFT,finance
+42b711d5-6567-46b6-bf11-0f33e66e297e,Elton's alert dashboard - TEST,consumer
+5d551155-3caa-466b-a1ef-01d0cfa95966,PTC - Topic Authority,consumer
+0a4ccf98-dfe7-4bab-b2ed-e2a27ebd9588,Kidspot Daily Update,marketing
+c22e86d8-835d-4a68-8c10-5d131e225e6b,Verity 2.0 The Mercury: Sunrise Report,product

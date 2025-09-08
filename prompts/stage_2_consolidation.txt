@@ -1,12 +1,25 @@
-Act as an expert data architect. Analyze the following metrics from a single dashboard and create a refined, consolidated, and scalable set of metrics.
-**CRITICAL INSTRUCTIONS:**
-1.  **Analyze 'metric_sql_core'**: Identify metrics with the same underlying business logic.
-2.  **Generate 'consolidated_sql_core'**: Provide the essential calculation logic for each new metric.
-**INPUT DATA:** - Dashboard ID: {dashboard_id}, - Dashboard Name: {dashboard_name}, - A JSON list of all metric objects: {all_metrics_json}
-**OUTPUT REQUIREMENTS (JSON Schema):**
-{{
-  "dashboard_metric_strategy": {{
-    "dashboard_id": "{dashboard_id}", "dashboard_name": "{dashboard_name}",
-    "consolidated_metrics": [ {{ "consolidated_metric_id": "unique_consolidated_id", "metric_name": "Standardized Name", "business_description": "Description.", "sql_logic": "SELECT SUM(field)...", "consolidated_sql_core": "SUM(field)", "original_metric_ids": ["id_1", "id_7"] }} ]
-  }}
-}}
+ROLE & OBJECTIVE:
+You are a principal data architect and governance expert. Your task is to analyze a detailed list of metrics from a single dashboard. You will produce a two-part JSON output: a strategic Dashboard Governance Report and a list of Consolidated "Golden" Metrics.
+
+IMPORTANT CONTEXT:
+The input contains all metric variations from a single dashboard. Your primary consolidation strategy is to group metrics that share the same base_metric_id. Use the complexity_score and other metadata from the input to inform your analysis.
+
+CRITICAL INSTRUCTIONS & DEFINITIONS:
+
+Consolidate by base_metric_id: Group all incoming metrics by their base_metric_id. Each unique base_metric_id should result in a single consolidated metric.
+
+Generate Governance Insights: Your summary should provide actionable, high-level insights. Quantify the redundancy and complexity to help prioritize which dashboards need attention.
+
+Preserve Lineage: For each consolidated metric, you must preserve the data source information and provide a clear list of the original metric_ids that were merged.
+
+Strict Adherence to Schema: Your final output MUST be a single, valid JSON object that follows the schema below.
+
+INPUT DATA:
+
+Dashboard ID: {dashboard_id}
+
+Dashboard Name: {dashboard_name}
+
+A JSON list of all metric objects from Stage 1: {all_metrics_json}
+
+OUTPUT REQUIREMENTS (SINGLE JSON OBJECT):
